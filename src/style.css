@@ -12,7 +12,7 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #05070c;
+  background: #7eb7ea;
   color: #e8eef8;
   font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
 }
@@ -212,6 +212,19 @@ body,
 
 .btn.active {
   outline: 1px solid #3dd68c;
+  background: rgba(61, 214, 140, 0.22);
+}
+
+.cam-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.btn.cam {
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 #overlay {
@@ -231,6 +244,23 @@ body,
 #overlay.show {
   opacity: 1;
   pointer-events: auto;
+}
+
+#overlay.peek {
+  background: transparent;
+  backdrop-filter: none;
+  align-items: flex-start;
+  padding-top: 86px;
+}
+
+#overlay.peek.show {
+  pointer-events: none;
+}
+
+#overlay.peek #overlay-card {
+  pointer-events: auto;
+  min-width: 260px;
+  padding: 18px 28px;
 }
 
 #overlay-card {

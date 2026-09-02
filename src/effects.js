@@ -453,9 +453,9 @@ export function setPlumeIntensity(plume, t, time) {
   const cLow = new THREE.Color(0xffaa60);
   const cHigh = new THREE.Color(0xff6a20);
   plume.userData.light.color.lerpColors(cLow, cHigh, k);
-  plume.userData.light.intensity = k * 2500;
+  plume.userData.light.intensity = k * 520;
   if (plume.userData.fillLight) {
-    plume.userData.fillLight.intensity = k * 800;
+    plume.userData.fillLight.intensity = k * 160;
   }
 
   plume.userData.engines.forEach((g, i) => {
@@ -475,10 +475,10 @@ export function setPlumeIntensity(plume, t, time) {
 
 export function setPadSpill(fx, k, time) {
   const t = THREE.MathUtils.clamp(k, 0, 1);
-  fx.userData.glow.material.opacity = t * 0.18;
+  fx.userData.glow.material.opacity = t * 0.1;
   fx.userData.glow.scale.setScalar(0.7 + t * 1.15);
-  fx.userData.spill.intensity = t * 1800;
-  fx.userData.bounce.intensity = t * 900;
+  fx.userData.spill.intensity = t * 280;
+  fx.userData.bounce.intensity = t * 120;
   pulseLayers([fx.userData.haze], t * 0.65, time);
   fx.userData.haze.scale.set(0.85 + t * 0.4, 0.5 + t * 0.8, 0.85 + t * 0.4);
 }

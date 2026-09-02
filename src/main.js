@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { makeMaterials } from './materials.js';
 import { createRocket } from './rocket.js';
 import { createPad, createSky } from './pad.js';
+import { createEarth, createSpaceStars, updateEarth, EARTH_R } from './earth.js';
 import {
   createPlume,
   createVacPlume,
@@ -39,7 +40,12 @@ const countdownBig = document.getElementById('countdown-big');
 const btnIgnite = document.getElementById('btn-ignite');
 const btnLaunch = document.getElementById('btn-launch');
 const btnReset = document.getElementById('btn-reset');
-const btnCamera = document.getElementById('btn-camera');
+const camBtns = {
+  free: document.getElementById('btn-cam-free'),
+  follow: document.getElementById('btn-cam-follow'),
+  rocket: document.getElementById('btn-cam-rocket'),
+  earth: document.getElementById('btn-cam-earth'),
+};
 const overlay = document.getElementById('overlay');
 const overlayCard = document.getElementById('overlay-card');
 const btnOverlayReset = document.getElementById('btn-overlay-reset');
@@ -59,29 +65,30 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
+renderer.toneMappingExposure = 1.06;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-function makeNightEnv() {
+function makeDayEnv() {
   const envScene = new THREE.Scene();
-  envScene.add(new THREE.HemisphereLight(0x8ea4cc, 0x1a140c, 1.4));
-  const cool = new THREE.DirectionalLight(0xb7c8ff, 2.4);
-  cool.position.set(-4, 6, 2);
-  envScene.add(cool);
-  const warm = new THREE.DirectionalLight(0xffc48a, 1.1);
-  warm.position.set(3, 1.2, -2);
-  envScene.add(warm);
+  envScene.add(new THREE.HemisphereLight(0xb7d8ff, 0xcbb89a, 2.4));
+  const sunE = new THREE.DirectionalLight(0xfff6e4, 3.6);
+  sunE.position.set(5, 9, 3);
+  envScene.add(sunE);
+  const fillE = new THREE.DirectionalLight(0xc5dcff, 0.7);
+  fillE.position.set(-4, 2, -3);
+  envScene.add(fillE);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const tex = pmrem.fromScene(envScene, 0.06).texture;
+  const tex = pmrem.fromScene(envScene, 0).texture;
   pmrem.dispose();
   return tex;
 }
 
 const scene = new THREE.Scene();
-scene.environment = makeNightEnv();
-scene.environmentIntensity = 0.55;
-scene.background = new THREE.Color(0x070b14);
-scene.fog = new THREE.Fog(0x070b14, 220, 1600);
+scene.environment = makeDayEnv();
+scene.environmentIntensity = 1.05;
+scene.background = new THREE.Color(0x7eb7ea);
+const dayFog = new THREE.Fog(0xb7d8ee, 520, 3200);
+scene.fog = dayFog;
 
 const FRAMING = {
   wide: {
@@ -94,7 +101,7 @@ const FRAMING = {
   },
 };
 
-const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.2, 6000);
+const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.2, 40000);
 camera.position.copy(FRAMING.hero.pos);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -106,45 +113,37 @@ controls.minDistance = 14;
 controls.maxDistance = 900;
 controls.target.copy(FRAMING.hero.target);
 
-const hemi = new THREE.HemisphereLight(0x7d90b8, 0x16110c, 0.55);
+const hemi = new THREE.HemisphereLight(0xd4e7ff, 0xb39b78, 1.45);
 scene.add(hemi);
 
-const moon = new THREE.DirectionalLight(0xc5d4ff, 1.1);
-moon.position.set(-90, 140, 55);
-moon.castShadow = true;
-moon.shadow.mapSize.set(2048, 2048);
-moon.shadow.camera.near = 8;
-moon.shadow.camera.far = 420;
-moon.shadow.camera.left = -110;
-moon.shadow.camera.right = 110;
-moon.shadow.camera.top = 120;
-moon.shadow.camera.bottom = -60;
-moon.shadow.bias = -0.00018;
-moon.shadow.normalBias = 0.04;
-scene.add(moon);
+const sun = new THREE.DirectionalLight(0xfff3d6, 3.35);
+sun.position.set(90, 160, 55);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 8;
+sun.shadow.camera.far = 420;
+sun.shadow.camera.left = -110;
+sun.shadow.camera.right = 110;
+sun.shadow.camera.top = 120;
+sun.shadow.camera.bottom = -60;
+sun.shadow.bias = -0.00018;
+sun.shadow.normalBias = 0.04;
+scene.add(sun);
 
-const rim = new THREE.DirectionalLight(0x9eb6ff, 0.9);
-rim.position.set(90, 38, -110);
-scene.add(rim);
-
-const rimLow = new THREE.DirectionalLight(0xffc090, 0.7);
-rimLow.position.set(-40, 8, 70);
-scene.add(rimLow);
-
-const fill = new THREE.DirectionalLight(0xffd0a0, 1.35);
-fill.position.set(30, 18, 40);
-scene.add(fill);
-
-const engineWash = new THREE.SpotLight(0xffe0b8, 800, 80, 0.35, 0.55, 2);
-engineWash.position.set(18, 8, 28);
-engineWash.target.position.set(0, 2, 0);
-scene.add(engineWash);
-scene.add(engineWash.target);
+const sunFill = new THREE.DirectionalLight(0xc5d8f2, 0.55);
+sunFill.position.set(-70, 40, -50);
+scene.add(sunFill);
 
 const mats = makeMaterials();
 const pad = createPad(mats);
 scene.add(pad);
-scene.add(createSky());
+const daySky = createSky();
+scene.add(daySky);
+
+const earth = createEarth();
+scene.add(earth);
+const spaceStars = createSpaceStars();
+scene.add(spaceStars);
 
 const rocket = createRocket(mats);
 rocket.position.set(0, PAD_Y, 0);
@@ -164,9 +163,9 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.12,
-  0.35,
-  0.92
+  0.06,
+  0.22,
+  0.97
 );
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
@@ -209,14 +208,59 @@ scene.add(groundSmoke.points);
 
 const COUNTDOWN_SEC = 10;
 const shake = { intensity: 0 };
-let followCam = true;
+const SPACE_ALT = 1500;
+let camMode = 'follow';
+const _up = new THREE.Vector3();
+const _east = new THREE.Vector3();
+const _onboardPos = new THREE.Vector3();
+const _onboardLook = new THREE.Vector3();
 
-function setFollowCam(on) {
-  followCam = on;
-  btnCamera.classList.toggle('active', on);
-  btnCamera.textContent = on ? '跟随相机' : '自由观察';
+function setCamMode(mode) {
+  const prev = camMode;
+  camMode = mode;
+  Object.entries(camBtns).forEach(([key, btn]) => {
+    btn.classList.toggle('active', key === mode);
+  });
+
+  const high =
+    mode === 'earth' ||
+    (state &&
+      (state.phase === 'flying' || state.phase === 'success') &&
+      state.y - PAD_Y >= SPACE_ALT);
+
+  if (mode === 'earth') {
+    const dir = new THREE.Vector3(90, 160, 55).normalize();
+    camera.position.copy(dir.multiplyScalar(EARTH_R * 3.25));
+    controls.target.set(0, 0, 0);
+    controls.minDistance = EARTH_R * 1.55;
+    controls.maxDistance = EARTH_R * 6.5;
+    controls.minPolarAngle = 0.08;
+    controls.maxPolarAngle = Math.PI * 0.92;
+    controls.enabled = true;
+    camera.near = 2;
+    camera.far = 40000;
+    camera.fov = 34;
+  } else if (mode === 'rocket') {
+    controls.enabled = false;
+    camera.near = 0.12;
+    camera.far = 40000;
+    camera.fov = 55;
+  } else {
+    if (prev === 'earth' && !high) {
+      camera.position.copy(FRAMING.wide.pos);
+      controls.target.copy(FRAMING.wide.target);
+    }
+    controls.enabled = true;
+    controls.minDistance = high ? 90 : 14;
+    controls.maxDistance = high ? EARTH_R * 7 : 2000;
+    controls.minPolarAngle = 0.08;
+    controls.maxPolarAngle = Math.PI * 0.9;
+    camera.near = 0.2;
+    camera.far = 40000;
+    camera.fov = 36;
+  }
+  camera.updateProjectionMatrix();
 }
-setFollowCam(true);
 
 const state = {
   phase: 'idle',
@@ -238,6 +282,7 @@ const state = {
   staged: false,
   firstDetached: false,
   first: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 },
+  earthRevealed: false,
 };
 
 function addShake(n) {
@@ -257,8 +302,61 @@ function setStatus(text) {
 }
 
 function syncRocketTransform() {
-  rocket.position.set(state.x, state.y, state.z);
-  rocket.rotation.set(0, 0, THREE.MathUtils.degToRad(-state.yaw));
+  const space = useSpaceLayout();
+  pad.visible = !space;
+  daySky.visible = !space;
+  earth.visible = space;
+  spaceStars.visible = space;
+  padSpill.visible = !space;
+  groundSmoke.points.visible = !space;
+
+  if (space) {
+    scene.background.setHex(0x050910);
+    scene.fog = null;
+    scene.environmentIntensity = 0.42;
+    hemi.intensity = 0.22;
+    sun.intensity = 2.8;
+    const alt = Math.max(0, state.y - PAD_Y);
+    const R = EARTH_R + 70 + alt * 0.05;
+    const lat = 0.48;
+    const lon = 1.32 + alt * 0.00014 + state.x * 0.0012;
+    const x = R * Math.cos(lat) * Math.sin(lon);
+    const y = R * Math.sin(lat);
+    const z = R * Math.cos(lat) * Math.cos(lon);
+    rocket.position.set(x, y, z);
+    _up.set(x, y, z).normalize();
+    rocket.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), _up);
+    rocket.rotateZ(THREE.MathUtils.degToRad(-state.yaw));
+    if (state.firstDetached) {
+      const first = scene.getObjectByName('firstStage');
+      if (first && first.parent !== rocket) {
+        first.position.copy(rocket.position).addScaledVector(_up, -42);
+        first.quaternion.copy(rocket.quaternion);
+        first.rotateZ(0.38);
+      }
+    }
+  } else {
+    scene.background.setHex(0x7eb7ea);
+    scene.fog = dayFog;
+    scene.environmentIntensity = 1.05;
+    hemi.intensity = 1.45;
+    sun.intensity = 3.35;
+    rocket.position.set(state.x, state.y, state.z);
+    rocket.quaternion.identity();
+    rocket.rotation.set(0, 0, THREE.MathUtils.degToRad(-state.yaw));
+  }
+
+  if (camMode === 'follow' || camMode === 'free') {
+    const space = useSpaceLayout();
+    controls.minDistance = space ? 90 : 14;
+    controls.maxDistance = space ? EARTH_R * 7 : 2000;
+  }
+}
+
+function useSpaceLayout() {
+  if (camMode === 'earth') return true;
+  const alt = state.y - PAD_Y;
+  return (state.phase === 'flying' || state.phase === 'success') && alt >= SPACE_ALT;
 }
 
 function worldEnginePos() {
@@ -280,7 +378,6 @@ function startIgnite() {
   btnIgnite.disabled = true;
   btnLaunch.disabled = false;
   setStatus('主机关机前点火');
-  setFollowCam(true);
   addShake(5);
   sparks.origin.copy(worldEnginePos());
   sparks.burst(80);
@@ -297,7 +394,6 @@ function startCountdown() {
   state.missionT = -COUNTDOWN_SEC;
   state.clockRunning = true;
   btnLaunch.disabled = true;
-  setFollowCam(true);
   setStatus('倒计时');
   countdownBig.classList.add('show');
   countdownBig.textContent = `T−${COUNTDOWN_SEC}`;
@@ -306,7 +402,6 @@ function startCountdown() {
 
 function launch() {
   if (state.phase === 'flying') return;
-  setFollowCam(true);
   state.phase = 'flying';
   state.missionT = 0;
   state.clockRunning = true;
@@ -358,6 +453,8 @@ function endGame(result) {
     ? `最大高度 ${Math.round(state.y)} m，二级点火正常，任务完成。`
     : '推力、姿态或燃料不足，飞行器未能维持上升。';
   overlay.classList.add('show');
+  overlay.classList.toggle('peek', success);
+  if (success) setCamMode('earth');
   btnIgnite.disabled = true;
   btnLaunch.disabled = true;
   if (!success) {
@@ -399,6 +496,7 @@ function fullReset() {
     ignited: false,
     staged: false,
     firstDetached: false,
+    earthRevealed: false,
   });
   state.fuel = parseInt(fuelSlider.value, 10);
   state.thrustPct = parseInt(thrustSlider.value, 10);
@@ -410,6 +508,7 @@ function fullReset() {
   btnIgnite.disabled = false;
   btnLaunch.disabled = true;
   overlay.classList.remove('show');
+  overlay.classList.remove('peek');
   countdownBig.classList.remove('show');
   shake.intensity = 0;
   setPlumeIntensity(plume, 0, 0);
@@ -417,7 +516,7 @@ function fullReset() {
   syncRocketTransform();
   setStatus('待命中');
   hud.stage.textContent = '一级';
-  setFollowCam(true);
+  setCamMode('follow');
   camera.position.copy(FRAMING.wide.pos);
   controls.target.copy(FRAMING.wide.target);
 }
@@ -507,8 +606,9 @@ function updateEffects(dt, time) {
   if (engineOn && pre) intensity = 0.42 + (state.phase === 'countdown' ? 0.38 : 0);
   if (engineOn && flying) intensity = 0.7 + (state.thrustPct / 100) * 0.3;
   setPlumeIntensity(plume, intensity, time);
-  bloomPass.strength = intensity > 0.05 ? 0.18 : 0.06;
-  bloomPass.threshold = intensity > 0.05 ? 0.88 : 0.95;
+  bloomPass.strength = intensity > 0.05 ? 0.1 : 0.045;
+  bloomPass.threshold = intensity > 0.05 ? 0.94 : 0.98;
+  bloomPass.radius = 0.22;
   setPadSpill(padSpill, state.y < 90 ? intensity : intensity * 0.15, time);
 
   if (state.staged && flying && state.fuel > 0) {
@@ -530,17 +630,23 @@ function updateEffects(dt, time) {
     smoke.emitRate *= 0.2;
     groundSmoke.emitRate *= 0.08;
   }
+  if (useSpaceLayout()) {
+    sparks.emitRate = 0;
+    smoke.emitRate = 0;
+    groundSmoke.emitRate = 0;
+  }
   sparks.update(dt);
   smoke.update(dt);
   groundSmoke.update(dt);
 
-  if (shake.intensity > 0.08) {
-    const mag = shake.intensity * 0.018;
+  if (camMode !== 'earth' && shake.intensity > 0.08) {
+    const mag = shake.intensity * (camMode === 'rocket' ? 0.01 : 0.018);
     camera.position.x += (Math.random() - 0.5) * mag;
     camera.position.y += (Math.random() - 0.5) * mag;
     shake.intensity *= 0.9;
   } else {
-    shake.intensity = 0;
+    shake.intensity *= camMode === 'earth' ? 0 : 0.9;
+    if (shake.intensity <= 0.08) shake.intensity = 0;
   }
 }
 
@@ -555,7 +661,44 @@ function heroMix() {
 }
 
 function updateCamera(dt) {
-  if (!followCam) return;
+  const kPos = 1 - Math.pow(0.018, dt);
+  const kLook = 1 - Math.pow(0.012, dt);
+
+  if (camMode === 'free') return;
+
+  if (camMode === 'rocket') {
+    rocket.updateMatrixWorld(true);
+    _onboardPos.set(6.2, 15.8, 5.6);
+    _onboardLook.set(0, 52, 0);
+    rocket.localToWorld(_onboardPos);
+    rocket.localToWorld(_onboardLook);
+    camera.position.copy(_onboardPos);
+    camera.lookAt(_onboardLook);
+    controls.target.copy(_onboardLook);
+    return;
+  }
+
+  if (camMode === 'earth') {
+    if (!controls.enabled) {
+      const dir = new THREE.Vector3(90, 140, 55).normalize();
+      camera.position.lerp(dir.multiplyScalar(EARTH_R * 3.25), kPos);
+    }
+    controls.target.lerp(new THREE.Vector3(0, 0, 0), kLook);
+    return;
+  }
+
+  if (useSpaceLayout()) {
+    _up.copy(rocket.position).normalize();
+    _east.crossVectors(new THREE.Vector3(0, 1, 0), _up);
+    if (_east.lengthSq() < 1e-6) _east.set(1, 0, 0);
+    _east.normalize();
+    const desired = rocket.position.clone().addScaledVector(_up, 55).addScaledVector(_east, 110);
+    const look = rocket.position.clone().addScaledVector(_up, 8);
+    camera.position.lerp(desired, kPos);
+    controls.target.lerp(look, kLook);
+    return;
+  }
+
   const alt = Math.max(0, state.y - PAD_Y);
   const mix = heroMix();
   const widePos = FRAMING.wide.pos;
@@ -581,8 +724,6 @@ function updateCamera(dt) {
     desired = new THREE.Vector3(state.x + dist * 0.56, camY, state.z + dist);
     look = new THREE.Vector3(state.x, lookY, state.z);
   }
-  const kPos = 1 - Math.pow(0.018, dt);
-  const kLook = 1 - Math.pow(0.012, dt);
   camera.position.lerp(desired, kPos);
   controls.target.lerp(look, kLook);
 }
@@ -635,8 +776,17 @@ function tick(now) {
   }
 
   updatePhysics(dt);
+  if (
+    !state.earthRevealed &&
+    (state.phase === 'flying' || state.phase === 'success') &&
+    state.y - PAD_Y >= SPACE_ALT
+  ) {
+    state.earthRevealed = true;
+    if (camMode === 'follow' || camMode === 'free') setCamMode('earth');
+  }
   syncRocketTransform();
   updateEffects(dt, now * 0.001);
+  updateEarth(earth, dt);
   updateCamera(dt);
   controls.update();
   updateHUD();
@@ -661,8 +811,8 @@ btnIgnite.addEventListener('click', startIgnite);
 btnLaunch.addEventListener('click', startCountdown);
 btnReset.addEventListener('click', fullReset);
 btnOverlayReset.addEventListener('click', fullReset);
-btnCamera.addEventListener('click', () => {
-  setFollowCam(!followCam);
+Object.entries(camBtns).forEach(([mode, btn]) => {
+  btn.addEventListener('click', () => setCamMode(mode));
 });
 
 window.addEventListener('resize', () => {

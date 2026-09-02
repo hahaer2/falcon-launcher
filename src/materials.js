@@ -125,17 +125,17 @@ export function makeMaterials() {
   const sootMap = makeSootMap();
 
   const white = new THREE.MeshPhysicalMaterial({
-    color: 0xf3efe6,
-    metalness: 0.12,
-    roughness: 0.36,
+    color: 0xf8f6f1,
+    metalness: 0.08,
+    roughness: 0.32,
     roughnessMap: paintRough,
     bumpMap: paintRough,
-    bumpScale: 0.04,
-    clearcoat: 0.48,
-    clearcoatRoughness: 0.32,
-    sheen: 0.18,
-    sheenColor: new THREE.Color(0xf2ead8),
-    envMapIntensity: 1.15,
+    bumpScale: 0.03,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.28,
+    sheen: 0.06,
+    sheenColor: new THREE.Color(0xffffff),
+    envMapIntensity: 0.95,
   });
 
   const black = new THREE.MeshPhysicalMaterial({

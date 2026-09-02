@@ -179,7 +179,7 @@ export function createPad(mats) {
     shade.position.set(px, 17.05, pz);
     root.add(shade);
 
-    const spot = new THREE.SpotLight(0xffe3b8, 220, 110, 0.45, 0.55, 2);
+    const spot = new THREE.SpotLight(0xffe3b8, 18, 90, 0.45, 0.55, 2);
     spot.position.set(px, 17.2, pz);
     spot.target.position.set(0, 8, 0);
     spot.castShadow = i < 2;
@@ -245,10 +245,10 @@ export function createPad(mats) {
   const horizon = new THREE.Mesh(
     new THREE.CylinderGeometry(480, 520, 28, 48, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0x10182c,
+      color: 0xc5dff2,
       side: THREE.BackSide,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.35,
       fog: true,
     })
   );
@@ -260,33 +260,66 @@ export function createPad(mats) {
 
 export function createSky() {
   const group = new THREE.Group();
+  group.name = 'daySky';
 
-  const makeLayer = (count, r0, r1, size, opacity) => {
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const r = r0 + Math.random() * (r1 - r0);
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(0.02 + Math.random() * 0.92);
-      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = r * Math.cos(phi);
-      pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-    }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    return new THREE.Points(
-      geo,
-      new THREE.PointsMaterial({
-        color: 0xe8f0ff,
-        size,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-      })
-    );
-  };
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {
+      top: { value: new THREE.Color(0x2f86d6) },
+      mid: { value: new THREE.Color(0x7ec8f2) },
+      bot: { value: new THREE.Color(0xeaf4ff) },
+    },
+    vertexShader: /* glsl */ `
+      varying vec3 vPos;
+      void main() {
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      varying vec3 vPos;
+      uniform vec3 top;
+      uniform vec3 mid;
+      uniform vec3 bot;
+      void main() {
+        float h = normalize(vPos).y;
+        vec3 col = mix(bot, mid, smoothstep(-0.12, 0.22, h));
+        col = mix(col, top, smoothstep(0.18, 0.88, h));
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+  });
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(2600, 48, 32), skyMat);
+  group.add(dome);
 
-  group.add(makeLayer(3200, 420, 520, 0.9, 0.75));
-  group.add(makeLayer(220, 430, 500, 2.4, 0.95));
+  const sun = new THREE.Mesh(
+    new THREE.CircleGeometry(56, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xfff4cc,
+      fog: false,
+      toneMapped: false,
+      depthWrite: false,
+    })
+  );
+  sun.position.set(520, 1180, 340);
+  sun.lookAt(0, 0, 0);
+  group.add(sun);
+
+  const halo = new THREE.Mesh(
+    new THREE.CircleGeometry(140, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xffe9a8,
+      transparent: true,
+      opacity: 0.22,
+      fog: false,
+      toneMapped: false,
+      depthWrite: false,
+    })
+  );
+  halo.position.copy(sun.position).multiplyScalar(0.98);
+  halo.lookAt(0, 0, 0);
+  group.add(halo);
+
   return group;
 }

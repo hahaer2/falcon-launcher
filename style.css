@@ -1,0 +1,1206 @@
+/* ==========================================================================
+   苍穹一号 · 轨道运载火箭发射模拟系统样式表
+   Sci-Fi Aerospace Ground & Flight Control Interface CSS
+   ========================================================================== */
+
+:root {
+  --bg-space: #050711;
+  --bg-panel: rgba(10, 17, 34, 0.82);
+  --bg-panel-border: rgba(0, 230, 255, 0.22);
+  --bg-card: rgba(16, 26, 52, 0.65);
+  
+  --primary: #00e5ff;
+  --primary-glow: rgba(0, 229, 255, 0.4);
+  --accent-gold: #ffb703;
+  --accent-orange: #fb8500;
+  --danger: #ff334b;
+  --danger-glow: rgba(255, 51, 75, 0.45);
+  --success: #00f59b;
+  --success-glow: rgba(0, 245, 155, 0.45);
+  --text-main: #f0f6fc;
+  --text-muted: #8b9bb4;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-space);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--text-main);
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 主画布 */
+#gameCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: block;
+}
+
+/* 顶部导航与状态条 */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58px;
+  background: linear-gradient(180deg, rgba(6, 10, 22, 0.92) 0%, rgba(6, 10, 22, 0.6) 80%, transparent 100%);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.insignia {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px var(--primary-glow));
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.brand-sub {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.top-center-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.stat-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 20px;
+  padding: 5px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-pill {
+  color: var(--accent-gold);
+  text-shadow: 0 0 8px rgba(255, 183, 3, 0.4);
+}
+
+.status-pill.flying {
+  color: var(--primary);
+  text-shadow: 0 0 8px var(--primary-glow);
+}
+
+.status-pill.success {
+  color: var(--success);
+  text-shadow: 0 0 8px var(--success-glow);
+}
+
+.status-pill.crash {
+  color: var(--danger);
+  text-shadow: 0 0 8px var(--danger-glow);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 按钮通用 */
+.icon-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 8px;
+  color: var(--text-main);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 15px;
+}
+
+.icon-btn:hover {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.15);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.btn {
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-panel-border);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00d2ff, #0077ff);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 180, 255, 0.35);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #33dcff, #1a88ff);
+  box-shadow: 0 6px 20px rgba(0, 200, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* 左侧遥测面板 */
+.hud-panel {
+  position: absolute;
+  z-index: 15;
+  background: var(--bg-panel);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.hud-telemetry {
+  top: 68px;
+  left: 20px;
+  width: 280px;
+  padding: 14px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.telemetry-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.telemetry-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.telemetry-card.highlight {
+  border-left: 3px solid var(--primary);
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.08), rgba(16, 26, 52, 0.65));
+}
+
+.card-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  font-family: var(--font-mono);
+}
+
+.card-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.card-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+.card-value.small {
+  font-size: 16px;
+}
+
+.card-unit {
+  font-size: 11px;
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--accent-gold);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+
+.telemetry-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* 燃料仪表 */
+.fuel-card {
+  border-left: 3px solid var(--accent-orange);
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.fuel-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-orange);
+  font-family: var(--font-mono);
+}
+
+.fuel-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.fuel-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff334b, #fb8500, #00f59b);
+  border-radius: 4px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 8px rgba(251, 133, 0, 0.6);
+}
+
+.fuel-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* 飞行日志小框 */
+.telemetry-log-card {
+  background: rgba(6, 10, 20, 0.85);
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.log-stream {
+  height: 64px;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.log-entry {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.log-entry.system { color: var(--primary); }
+.log-entry.warn { color: var(--accent-gold); }
+.log-entry.event { color: var(--success); }
+.log-entry.danger { color: var(--danger); }
+
+/* 右侧高度标尺 */
+.hud-altitude-ladder {
+  top: 68px;
+  right: 20px;
+  width: 136px;
+  bottom: 190px;
+  padding: 12px 10px;
+}
+
+.ladder-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ladder-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 10px;
+}
+
+.ladder-track {
+  position: relative;
+  flex: 1;
+  background: linear-gradient(180deg, rgba(0, 10, 30, 0.9) 0%, rgba(0, 80, 180, 0.25) 80%, rgba(0, 120, 255, 0.4) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  margin: 0 4px;
+}
+
+.ladder-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.mark-line {
+  width: 12px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.mark-text {
+  font-size: 9.5px;
+  color: #c0d0e6;
+  font-family: var(--font-mono);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.mark-karman .mark-line, .mark-karman .mark-text {
+  color: var(--accent-gold);
+  background: var(--accent-gold);
+  font-weight: 700;
+}
+
+.mark-orbit .mark-line, .mark-orbit .mark-text {
+  color: var(--success);
+  background: var(--success);
+  font-weight: 700;
+}
+
+.ladder-cursor {
+  position: absolute;
+  left: -10px;
+  transform: translateY(50%);
+  display: flex;
+  align-items: center;
+  transition: bottom 0.12s linear;
+  z-index: 5;
+}
+
+.cursor-icon {
+  font-size: 16px;
+  transform: rotate(45deg);
+  filter: drop-shadow(0 0 6px var(--primary));
+}
+
+.cursor-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-left: 2px;
+  box-shadow: 0 0 8px var(--primary);
+}
+
+/* 底部控制台 Deck */
+.bottom-control-deck {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(0deg, rgba(6, 11, 24, 0.96) 0%, rgba(8, 14, 30, 0.85) 90%, transparent 100%);
+  border-top: 1px solid rgba(0, 229, 255, 0.2);
+  padding: 12px 20px 10px;
+  z-index: 20;
+  backdrop-filter: blur(16px);
+}
+
+.control-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.ctrl-group {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ctrl-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.ctrl-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.slider-display {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+/* 预设按钮 */
+.preset-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.preset-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-main);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.preset-btn small {
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+}
+
+.preset-btn:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--primary);
+}
+
+.preset-btn.active {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+  color: #fff;
+}
+
+.preset-btn.active small {
+  color: var(--primary);
+}
+
+/* 滑块组 */
+.slider-group {
+  flex: 1.1;
+  min-width: 190px;
+}
+
+.slider-wrapper {
+  margin: 4px 0 6px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+  cursor: grab;
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.3);
+}
+
+.quick-step-row {
+  display: flex;
+  gap: 5px;
+}
+
+.step-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 3px 0;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-mono);
+}
+
+.step-btn:hover {
+  background: rgba(0, 229, 255, 0.15);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* 倒计时单选 */
+.countdown-group {
+  min-width: 130px;
+}
+
+.countdown-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.radio-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.radio-chip input[type="radio"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.radio-chip input:checked + span {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* 发射动作核心区 */
+.action-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.btn-launch {
+  height: 64px;
+  padding: 0 24px;
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  border-radius: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(255, 75, 43, 0.45);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-launch::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(60deg, transparent 40%, rgba(255, 255, 255, 0.25) 50%, transparent 60%);
+  transform: rotate(30deg);
+  animation: shineSweep 4s infinite ease-in-out;
+}
+
+@keyframes shineSweep {
+  0% { transform: translateX(-100%) rotate(30deg); }
+  30%, 100% { transform: translateX(100%) rotate(30deg); }
+}
+
+.btn-launch:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 28px rgba(255, 75, 43, 0.65);
+}
+
+.btn-launch:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn-launch.active-firing {
+  background: linear-gradient(135deg, #00f59b, #00b4d8);
+  box-shadow: 0 0 25px rgba(0, 245, 155, 0.6);
+}
+
+.launch-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+}
+
+.launch-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.launch-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.launch-sub {
+  font-size: 9px;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  font-family: var(--font-mono);
+}
+
+.secondary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-stage {
+  background: linear-gradient(135deg, rgba(255, 183, 3, 0.2), rgba(251, 133, 0, 0.25));
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-size: 12px;
+  padding: 8px 14px;
+}
+
+.btn-stage:not(:disabled):hover {
+  background: var(--accent-gold);
+  color: #000;
+  box-shadow: 0 0 16px rgba(255, 183, 3, 0.6);
+}
+
+.btn-stage:disabled, .btn-abort:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.btn-abort {
+  background: rgba(255, 51, 75, 0.15);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 11px;
+  padding: 6px 14px;
+}
+
+.btn-abort:not(:disabled):hover {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 16px var(--danger-glow);
+}
+
+/* 快捷键指示条 */
+.keyboard-hints {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hint-title {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.kbd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: #fff;
+}
+
+/* 倒计时大号浮窗 */
+.countdown-overlay {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 50;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.countdown-number {
+  font-size: 140px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: #ffffff;
+  text-shadow: 0 0 30px var(--primary), 0 0 60px var(--primary-glow);
+  animation: countdownPulse 1s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+  line-height: 1;
+}
+
+@keyframes countdownPulse {
+  0% { transform: scale(1.2); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  85% { transform: scale(0.96); opacity: 0.9; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+
+.countdown-sub {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--accent-gold);
+  text-shadow: 0 0 15px rgba(255, 183, 3, 0.6);
+  margin-top: 10px;
+}
+
+/* 结果模态弹窗 */
+.result-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(4, 7, 16, 0.75);
+  backdrop-filter: blur(12px);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(12, 20, 42, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 20px;
+  padding: 32px 36px;
+  width: 90%;
+  max-width: 520px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 229, 255, 0.15);
+  text-align: center;
+  animation: modalEnter 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.88) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.success-card {
+  border-color: rgba(0, 245, 155, 0.4);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 40px var(--success-glow);
+}
+
+.crash-card {
+  border-color: rgba(255, 51, 75, 0.4);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 40px var(--danger-glow);
+}
+
+.modal-badge-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(0, 245, 155, 0.15);
+  border: 2px solid var(--success);
+  box-shadow: 0 0 20px var(--success-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.modal-badge-ring.crash {
+  background: rgba(255, 51, 75, 0.15);
+  border-color: var(--danger);
+  box-shadow: 0 0 20px var(--danger-glow);
+}
+
+.modal-badge {
+  font-size: 34px;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.modal-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  background: rgba(6, 10, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.report-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.item-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.item-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary);
+  font-family: var(--font-mono);
+}
+
+.item-val.danger {
+  color: var(--danger);
+}
+
+.medal-tier {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-bottom: 24px;
+  background: rgba(255, 183, 3, 0.12);
+  border: 1px dashed rgba(255, 183, 3, 0.4);
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.medal-tier .grade {
+  color: #fff;
+}
+
+.flight-tip-box {
+  background: rgba(255, 183, 3, 0.1);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.tip-icon {
+  font-size: 16px;
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #f1dfb0;
+  line-height: 1.5;
+}
+
+.modal-footer-btns {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.modal-footer-btns .btn {
+  padding: 10px 22px;
+  font-size: 14px;
+}
+
+.btn-retry {
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+}
+
+/* 帮助手册弹窗 */
+.help-card {
+  text-align: left;
+  max-width: 600px;
+}
+
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+}
+
+.icon-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.icon-close:hover {
+  color: #fff;
+}
+
+.help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 20px;
+}
+
+.help-section h3 {
+  font-size: 14px;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.help-section p {
+  font-size: 12.5px;
+  color: #c9d5e6;
+  line-height: 1.6;
+}
+
+.help-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-section li {
+  font-size: 12px;
+  color: #c9d5e6;
+  line-height: 1.5;
+}
+
+.help-section li strong {
+  color: var(--accent-gold);
+}
+
+.help-keys-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+
+/* 移动端与小屏适配 */
+@media (max-width: 1024px) {
+  .hud-telemetry {
+    width: 220px;
+    padding: 10px;
+  }
+  .hud-altitude-ladder {
+    width: 110px;
+  }
+  .bottom-control-deck {
+    padding: 8px 12px;
+  }
+  .control-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .btn-launch {
+    height: 52px;
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-center-stats {
+    display: none;
+  }
+  .hud-altitude-ladder {
+    display: none;
+  }
+  .hud-telemetry {
+    top: 60px;
+    left: 8px;
+    width: 170px;
+    padding: 8px;
+  }
+  .card-value {
+    font-size: 17px;
+  }
+  .telemetry-row {
+    grid-template-columns: 1fr;
+  }
+  .telemetry-log-card {
+    display: none;
+  }
+  .keyboard-hints {
+    display: none;
+  }
+}
