@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>猎鹰九号 · 发射任务</title>
+    <script type="module" crossorigin src="/falcon-launcher/assets/index-5qal_9El.js"></script>
+    <link rel="stylesheet" crossorigin href="/falcon-launcher/assets/index-Gs-_zyjT.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="c"></canvas>
+
+      <header id="topbar">
+        <div class="brand">
+          <span class="live">LIVE</span>
+          <span>猎鹰九号 · 低轨入轨任务</span>
+        </div>
+        <div class="clocks">
+          <div>
+            <small>任务时钟</small>
+            <strong id="tclock">T−00:00</strong>
+          </div>
+          <div>
+            <small>状态</small>
+            <strong id="hud-status">待命中</strong>
+          </div>
+        </div>
+      </header>
+
+      <aside id="telemetry">
+        <h3>遥测</h3>
+        <dl>
+          <div><dt>高度</dt><dd><strong id="hud-alt">0</strong> m</dd></div>
+          <div><dt>速度</dt><dd><strong id="hud-vel">0</strong> m/s</dd></div>
+          <div><dt>燃料</dt><dd><strong id="hud-fuel">100</strong>%</dd></div>
+          <div><dt>推力</dt><dd><strong id="hud-thrust">90</strong>%</dd></div>
+          <div><dt>俯仰</dt><dd><strong id="hud-pitch">90</strong>°</dd></div>
+          <div><dt>级数</dt><dd><strong id="hud-stage">一级</strong></dd></div>
+        </dl>
+      </aside>
+
+      <div id="countdown-big">—</div>
+
+      <footer id="panel">
+        <div class="control-group">
+          <label>燃料 (%)</label>
+          <input type="range" id="fuel-slider" min="20" max="100" value="100" />
+          <span class="value" id="fuel-val">100%</span>
+        </div>
+        <div class="control-group">
+          <label>推力 (%)</label>
+          <input type="range" id="thrust-slider" min="40" max="100" value="90" />
+          <span class="value" id="thrust-val">90%</span>
+        </div>
+        <div class="control-group">
+          <label>偏航 (°)</label>
+          <input type="range" id="angle-slider" min="-12" max="12" value="0" />
+          <span class="value" id="angle-val">0°</span>
+        </div>
+        <button class="btn" id="btn-ignite">点火</button>
+        <button class="btn primary" id="btn-launch" disabled>发射</button>
+        <button class="btn ghost" id="btn-reset">重置</button>
+        <button class="btn ghost" id="btn-camera">跟随相机</button>
+      </footer>
+
+      <div id="overlay">
+        <div id="overlay-card">
+          <h2></h2>
+          <p></p>
+          <button class="btn primary" id="btn-overlay-reset">再来一次</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
