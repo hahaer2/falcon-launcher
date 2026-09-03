@@ -240,20 +240,67 @@ const COUNTDOWN_SEC = 10;
 const shake = { intensity: 0 };
 const debrisPieces = [];
 const _debrisTmp = new THREE.Vector3();
-const boomFX = new ParticleField(900, {
+const boomFX = new ParticleField(1800, {
   color: 0xff6a2a,
-  size: 1.4,
+  size: 9.5,
   opacity: 1,
   additive: true,
-  spread: 8,
-  down: -28,
-  side: 42,
-  lifeSpan: [0.5, 1.8],
-  yJitter: 14,
-  gravity: 9,
-  emitCap: 120,
+  spread: 22,
+  down: -8,
+  side: 95,
+  lifeSpan: [0.9, 2.4],
+  yJitter: 28,
+  gravity: 6,
+  emitCap: 200,
+  grow: 8,
 });
 scene.add(boomFX.points);
+
+const boomSmoke = new ParticleField(1600, {
+  color: 0x9aa3ad,
+  size: 14,
+  opacity: 0.85,
+  additive: false,
+  spread: 28,
+  down: -4,
+  side: 70,
+  lifeSpan: [1.6, 3.8],
+  yJitter: 24,
+  gravity: 3,
+  emitCap: 120,
+  grow: 12,
+  alphaMul: 0.9,
+});
+scene.add(boomSmoke.points);
+
+const fireballMat = new THREE.MeshBasicMaterial({
+  color: 0xffaa44,
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  toneMapped: false,
+});
+const fireball = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), fireballMat);
+fireball.visible = false;
+scene.add(fireball);
+const fireballCore = new THREE.Mesh(
+  new THREE.SphereGeometry(0.55, 16, 12),
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  }),
+);
+fireball.add(fireballCore);
+const boomLight = new THREE.PointLight(0xff7a30, 0, 420, 1.4);
+boomLight.visible = false;
+scene.add(boomLight);
+const boomState = { t: 0, active: false, origin: new THREE.Vector3() };
+let destructOverlayTimer = 0;
 
 const SPACE_ALT = 1500;
 let camMode = 'follow';
@@ -547,64 +594,114 @@ function flingPart(obj, impulseScale) {
   ).normalize();
   debrisPieces.push({
     mesh: obj,
-    vel: dir.multiplyScalar(28 + Math.random() * 55 * impulseScale),
+    vel: dir.multiplyScalar(48 + Math.random() * 90 * impulseScale),
     spin: new THREE.Vector3(
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 7,
+      (Math.random() - 0.5) * 7,
+      (Math.random() - 0.5) * 7,
     ),
   });
 }
 
 function destroyRocket() {
   if (state.phase === 'destroyed' || state.phase === 'success' || state.phase === 'crash') return;
-  // Stop engines / vapors
   clearInterval(state.countdownTimer);
   countdownBig.classList.remove('show');
   setPlumeIntensity(plume, 0, 0);
   setPadSpill(padSpill, 0, 0);
-  if (typeof setLoxVaporPlumes === 'function') setLoxVaporPlumes(loxMeshes, 0, 0);
+  setLoxVaporPlumes(loxMeshes, 0, 0);
   vacPlume.visible = false;
   plume.visible = false;
 
-  const boomAt = new THREE.Vector3(state.x, Math.max(PAD_Y + 4, state.y + 18), state.z);
-  boomFX.origin.copy(boomAt);
-  boomFX.burst(420);
-  sparks.origin.copy(boomAt);
-  sparks.burst(380);
-  smoke.origin.copy(boomAt);
-  smoke.burst(280);
-  addShake(32);
-
-  // Blow the stack apart
   rocket.updateMatrixWorld(true);
-  flingPart(rocket.userData.fairing, 1.3);
-  flingPart(rocket.userData.second, 1.0);
-  flingPart(rocket.userData.first, 0.85);
+  const boomAt = new THREE.Vector3();
+  rocket.getWorldPosition(boomAt);
+  boomAt.y += (rocket.userData.totalHeight || 70) * 0.45;
+
+  boomState.active = true;
+  boomState.t = 0;
+  boomState.origin.copy(boomAt);
+
+  fireball.position.copy(boomAt);
+  fireball.scale.setScalar(4);
+  fireballMat.opacity = 1;
+  fireballCore.material.opacity = 1;
+  fireball.visible = true;
+  boomLight.position.copy(boomAt);
+  boomLight.intensity = 1800;
+  boomLight.visible = true;
+
+  boomFX.origin.copy(boomAt);
+  boomSmoke.origin.copy(boomAt);
+  sparks.origin.copy(boomAt);
+  smoke.origin.copy(boomAt);
+  boomFX.burst(700);
+  boomSmoke.burst(520);
+  sparks.burst(500);
+  smoke.burst(420);
+  groundSmoke.origin.set(boomAt.x, 0.6, boomAt.z);
+  if (boomAt.y < 120) groundSmoke.burst(180);
+  addShake(42);
+  bloomPass.strength = 1.35;
+  bloomPass.threshold = 0.55;
+
+  flingPart(rocket.userData.fairing, 1.6);
+  flingPart(rocket.userData.second, 1.25);
+  flingPart(rocket.userData.first, 1.05);
   rocket.visible = false;
 
   state.vx = 0;
   state.vy = 0;
   state.vz = 0;
-  endGame('destroyed');
+  state.phase = 'destroyed';
+  state.clockRunning = false;
+  setStatus('空中解体');
+  btnIgnite.disabled = true;
+  btnLaunch.disabled = true;
+  if (btnDestruct) btnDestruct.disabled = true;
+  if (camMode === 'rocket') setCamMode('follow');
+  // Delay end card so the boom is visible first
+  clearTimeout(destructOverlayTimer);
+  destructOverlayTimer = setTimeout(() => {
+    if (state.phase !== 'destroyed') return;
+    endGame('destroyed');
+  }, 1800);
 }
 
 function updateDebris(dt) {
+  if (boomState.active) {
+    boomState.t += dt;
+    const u = Math.min(1, boomState.t / 1.6);
+    const grow = 4 + u * 55;
+    fireball.scale.setScalar(grow);
+    fireballMat.opacity = Math.max(0, 1 - u * 1.15);
+    fireballCore.material.opacity = Math.max(0, 1 - u * 1.6);
+    boomLight.intensity = Math.max(0, 1800 * (1 - u) * (1 - u));
+    bloomPass.strength = THREE.MathUtils.lerp(1.35, 0.1, Math.min(1, boomState.t / 1.1));
+    bloomPass.threshold = THREE.MathUtils.lerp(0.55, 0.94, Math.min(1, boomState.t / 1.1));
+    if (u >= 1) {
+      boomState.active = false;
+      fireball.visible = false;
+      boomLight.visible = false;
+      boomLight.intensity = 0;
+    }
+  }
   for (let i = debrisPieces.length - 1; i >= 0; i--) {
     const d = debrisPieces[i];
-    d.vel.y -= 18 * dt;
+    d.vel.y -= 22 * dt;
     d.mesh.position.x += d.vel.x * dt;
     d.mesh.position.y += d.vel.y * dt;
     d.mesh.position.z += d.vel.z * dt;
     d.mesh.rotation.x += d.spin.x * dt;
     d.mesh.rotation.y += d.spin.y * dt;
     d.mesh.rotation.z += d.spin.z * dt;
-    if (d.mesh.position.y < -80) {
+    if (d.mesh.position.y < -120) {
       scene.remove(d.mesh);
       debrisPieces.splice(i, 1);
     }
   }
   boomFX.update(dt);
+  boomSmoke.update(dt);
 }
 
 function endGame(result) {
@@ -630,16 +727,28 @@ function endGame(result) {
   btnIgnite.disabled = true;
   btnLaunch.disabled = true;
   if (btnDestruct) btnDestruct.disabled = true;
-  if (!success) {
-    addShake(destroyed ? 28 : 16);
+  if (!success && !destroyed) {
+    addShake(16);
     sparks.origin.set(state.x, Math.max(2, state.y), state.z);
-    sparks.burst(destroyed ? 360 : 220);
-    smoke.burst(destroyed ? 260 : 160);
+    sparks.burst(220);
+    smoke.burst(160);
+  }
+  if (destroyed) {
+    // Keep scene visible under a lighter card so debris stays on screen
+    overlay.classList.add('peek');
   }
 }
 
 function fullReset() {
   clearDebris();
+  clearTimeout(destructOverlayTimer);
+  boomState.active = false;
+  fireball.visible = false;
+  fireballMat.opacity = 0;
+  boomLight.visible = false;
+  boomLight.intensity = 0;
+  bloomPass.strength = 0.1;
+  bloomPass.threshold = 0.94;
   clearInterval(state.countdownTimer);
   if (state.firstDetached) {
     const first = scene.getObjectByName('firstStage');
@@ -1033,6 +1142,7 @@ function tick(now) {
   }
   syncRocketTransform();
   updateEffects(dt, now * 0.001);
+  updateDebris(dt);
   updateEarth(earth, dt);
   updateCamera(dt);
   controls.update();
