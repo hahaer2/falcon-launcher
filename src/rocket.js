@@ -267,36 +267,36 @@ function makeLeg(mats, xtra) {
 
 function makeEngine(mats, xtra) {
   const e = new THREE.Group();
-  const bell = merlinBell(0.62, 0.14, 3.35, 40, xtra.nb);
-  bell.position.y = -1.68;
+  const bell = merlinBell(0.86, 0.16, 3.95, 44, xtra.nb);
+  bell.position.y = -1.92;
   e.add(bell);
 
-  const inner = merlinBell(0.48, 0.11, 3.05, 24, xtra.innerBell);
-  inner.position.y = -1.52;
+  const inner = merlinBell(0.68, 0.13, 3.55, 28, xtra.innerBell);
+  inner.position.y = -1.72;
   e.add(inner);
 
-  const lip = torusRing(0.62, 0.055, xtra.gold, 28, 8);
-  lip.position.y = -1.68;
+  const lip = torusRing(0.86, 0.08, xtra.gold, 32, 8);
+  lip.position.y = -1.92;
   e.add(lip);
 
   const throat = shadow(
-    new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.42, 14), mats.metal)
+    new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.48, 14), mats.metal)
   );
-  throat.position.y = 1.75;
+  throat.position.y = 2.05;
   e.add(throat);
 
   const can = shadow(
-    new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.54, 0.95, 14), xtra.soot)
+    new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.56, 0.92, 14), xtra.soot)
   );
-  can.position.y = 1.22;
+  can.position.y = 1.42;
   e.add(can);
 
-  const canLip = torusRing(0.54, 0.05, mats.metal, 16, 8);
-  canLip.position.y = 0.76;
+  const canLip = torusRing(0.56, 0.05, mats.metal, 16, 8);
+  canLip.position.y = 0.98;
   e.add(canLip);
 
   const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.42, 20),
+    new THREE.CircleGeometry(0.58, 22),
     new THREE.MeshBasicMaterial({
       color: 0xffc080,
       transparent: true,
@@ -307,7 +307,7 @@ function makeEngine(mats, xtra) {
     })
   );
   glow.rotation.x = Math.PI / 2;
-  glow.position.y = -1.66;
+  glow.position.y = -1.9;
   glow.name = 'nozzleGlow';
   e.add(glow);
 
@@ -384,7 +384,7 @@ export function createRocket(mats) {
     const rib = shadow(
       new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.46, 2.55, 10), mats.metal)
     );
-    rib.position.set(Math.cos(a) * 2.28, 3.15, Math.sin(a) * 2.28);
+    rib.position.set(Math.cos(a) * 2.85, 3.2, Math.sin(a) * 2.85);
     first.add(rib);
   }
 
@@ -458,7 +458,7 @@ export function createRocket(mats) {
 
   ENGINE_LAYOUT.forEach((p, i) => {
     const eng = makeEngine(mats, xtra);
-    eng.position.set(p.x, -1.15, p.z);
+    eng.position.set(p.x, -1.45, p.z);
     eng.name = `engine-${i}`;
     first.add(eng);
   });

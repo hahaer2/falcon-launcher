@@ -235,6 +235,39 @@ export function makeMaterials() {
     metalness: 0.15,
   });
 
+  const grass = new THREE.MeshStandardMaterial({
+    color: 0x6a8a42,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+  const scrub = new THREE.MeshStandardMaterial({
+    color: 0x4e6a32,
+    roughness: 0.97,
+    metalness: 0.0,
+  });
+  const wetland = new THREE.MeshStandardMaterial({
+    color: 0x3a5a44,
+    roughness: 0.7,
+    metalness: 0.04,
+  });
+  const sand = new THREE.MeshStandardMaterial({
+    color: 0xd9c8a2,
+    roughness: 0.92,
+    metalness: 0.0,
+  });
+  const water = new THREE.MeshPhysicalMaterial({
+    color: 0x2e7eb8,
+    roughness: 0.18,
+    metalness: 0.12,
+    envMapIntensity: 1.1,
+  });
+  const hangar = new THREE.MeshPhysicalMaterial({
+    color: 0xcfc6b6,
+    roughness: 0.55,
+    metalness: 0.22,
+    envMapIntensity: 0.7,
+  });
+
   return {
     white,
     black,
@@ -248,12 +281,18 @@ export function makeMaterials() {
     charred,
     titanium,
     lamp,
+    grass,
+    scrub,
+    wetland,
+    sand,
+    water,
+    hangar,
   };
 }
 
 export const ENGINE_LAYOUT = (() => {
   const pts = [{ x: 0, z: 0 }];
-  const ring = 3.55;
+  const ring = 4.35;
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
     pts.push({ x: Math.cos(a) * ring, z: Math.sin(a) * ring });

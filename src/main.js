@@ -87,17 +87,17 @@ const scene = new THREE.Scene();
 scene.environment = makeDayEnv();
 scene.environmentIntensity = 1.05;
 scene.background = new THREE.Color(0x7eb7ea);
-const dayFog = new THREE.Fog(0xb7d8ee, 520, 3200);
+const dayFog = new THREE.Fog(0xb7d8ee, 780, 3800);
 scene.fog = dayFog;
 
 const FRAMING = {
   wide: {
-    pos: new THREE.Vector3(42, 12, 68),
-    target: new THREE.Vector3(0, 16, 0),
+    pos: new THREE.Vector3(88, 16, 52),
+    target: new THREE.Vector3(0, 14, 0),
   },
   hero: {
-    pos: new THREE.Vector3(22, 5.5, 36),
-    target: new THREE.Vector3(0, 4.2, 0),
+    pos: new THREE.Vector3(32, 5.8, 28),
+    target: new THREE.Vector3(0, 3.6, 0),
   },
 };
 

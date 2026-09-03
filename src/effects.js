@@ -229,12 +229,12 @@ export function createPlume() {
 
   ENGINE_LAYOUT.forEach((p) => {
     const g = new THREE.Group();
-    g.position.set(p.x, -2.75, p.z);
+    g.position.set(p.x, -3.15, p.z);
 
-    const innerCore = makeLayer(3.2, 0.08, 0.02, 0xf0f8ff, 0xd8ecff, 0xb0d4ff, 1.5);
-    const core = makeLayer(5.4, 0.18, 0.08, 0xeaf4ff, 0xb8d8ff, 0x7ec0ff, 1.15);
-    const mid = makeLayer(8.2, 0.34, 0.14, 0xfff2c8, 0xff9a3a, 0xff5a18, 0.45);
-    const outer = makeLayer(11.5, 0.52, 0.2, 0xffc078, 0xff6a22, 0xff3a00, 0.1);
+    const innerCore = makeLayer(3.4, 0.1, 0.02, 0xf0f8ff, 0xd8ecff, 0xb0d4ff, 1.5);
+    const core = makeLayer(5.8, 0.22, 0.08, 0xeaf4ff, 0xb8d8ff, 0x7ec0ff, 1.15);
+    const mid = makeLayer(8.6, 0.4, 0.12, 0xfff2c8, 0xff9a3a, 0xff5a18, 0.45);
+    const outer = makeLayer(12.2, 0.58, 0.16, 0xffc078, 0xff6a22, 0xff3a00, 0.1);
     g.add(outer, mid, core, innerCore);
 
     const diamonds = makeDiamonds();
