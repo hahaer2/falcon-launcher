@@ -16,25 +16,25 @@ function shadow(mesh) {
 function extraMats() {
   return {
     titanium: new THREE.MeshPhysicalMaterial({
-      color: 0xc4b7a0,
-      metalness: 0.92,
-      roughness: 0.28,
-      clearcoat: 0.2,
+      color: 0xa89880,
+      metalness: 0.94,
+      roughness: 0.34,
+      clearcoat: 0.12,
     }),
     soot: new THREE.MeshPhysicalMaterial({
-      color: 0x161412,
-      metalness: 0.22,
-      roughness: 0.78,
+      color: 0x0c0a08,
+      metalness: 0.18,
+      roughness: 0.86,
     }),
     gold: new THREE.MeshPhysicalMaterial({
-      color: 0xc9a36a,
-      metalness: 0.88,
-      roughness: 0.32,
+      color: 0xb89250,
+      metalness: 0.9,
+      roughness: 0.28,
     }),
     nb: new THREE.MeshPhysicalMaterial({
-      color: 0x8a5a3a,
-      metalness: 0.9,
-      roughness: 0.24,
+      color: 0x4a2a18,
+      metalness: 0.94,
+      roughness: 0.32,
     }),
     graphite: new THREE.MeshPhysicalMaterial({
       color: 0x2a2c30,
@@ -42,10 +42,15 @@ function extraMats() {
       roughness: 0.5,
     }),
     innerBell: new THREE.MeshStandardMaterial({
-      color: 0x140805,
-      roughness: 0.62,
-      metalness: 0.35,
+      color: 0x080402,
+      roughness: 0.72,
+      metalness: 0.28,
       side: THREE.BackSide,
+    }),
+    legSock: new THREE.MeshPhysicalMaterial({
+      color: 0x121418,
+      metalness: 0.55,
+      roughness: 0.42,
     }),
     heatBase: new THREE.MeshPhysicalMaterial({
       color: 0x2a1a10,
@@ -107,34 +112,40 @@ function torusRing(radius, tube, mat, radial = 48, tubular = 10) {
 
 function makeMarkingTexture() {
   const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 512;
+  c.width = 512;
+  c.height = 1024;
   const g = c.getContext('2d');
-  g.clearRect(0, 0, 256, 512);
-  g.fillStyle = '#1a1c22';
-  g.fillRect(70, 40, 28, 280);
+  g.clearRect(0, 0, 512, 1024);
+  // Dark vertical raceway stripe for contrast
+  g.fillStyle = '#0e1016';
+  g.fillRect(118, 60, 56, 620);
+  // US flag block
   g.fillStyle = '#c41e3a';
-  g.fillRect(108, 40, 90, 18);
-  g.fillStyle = '#f4f4f4';
-  g.fillRect(108, 58, 90, 18);
+  g.fillRect(200, 70, 200, 36);
+  g.fillStyle = '#f7f7f7';
+  g.fillRect(200, 106, 200, 36);
   g.fillStyle = '#c41e3a';
-  g.fillRect(108, 76, 90, 18);
-  g.fillStyle = '#1c3f8c';
-  g.fillRect(108, 40, 36, 36);
-  g.fillStyle = '#f4f4f4';
-  for (let i = 0; i < 5; i++) {
+  g.fillRect(200, 142, 200, 36);
+  g.fillStyle = '#1a3f8e';
+  g.fillRect(200, 70, 78, 72);
+  g.fillStyle = '#f7f7f7';
+  for (let i = 0; i < 9; i++) {
     g.beginPath();
-    g.arc(116 + (i % 3) * 10, 48 + Math.floor(i / 3) * 12, 2.2, 0, Math.PI * 2);
+    g.arc(214 + (i % 3) * 18, 88 + Math.floor(i / 3) * 18, 3.4, 0, Math.PI * 2);
     g.fill();
   }
-  
-  g.font = 'bold 20px sans-serif';
-  g.fillStyle = '#ffffff';
-  g.fillText('SPACEX', 110, 240);
-  
-  g.font = '16px sans-serif';
-  g.fillStyle = '#d3d3d3';
-  g.fillText('F9', 120, 300);
+  g.font = 'bold 54px sans-serif';
+  g.fillStyle = '#0b0d12';
+  g.fillText('SPACEX', 196, 430);
+  g.font = 'bold 52px sans-serif';
+  g.fillStyle = '#1a1c22';
+  g.fillText('SPACEX', 198, 428);
+  g.font = 'bold 36px sans-serif';
+  g.fillStyle = '#22262e';
+  g.fillText('FALCON 9', 198, 520);
+  g.font = 'bold 28px sans-serif';
+  g.fillStyle = '#2a3038';
+  g.fillText('F9', 230, 600);
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -189,8 +200,14 @@ function makeGridFin(xtra) {
   });
   geo.translate(0, 0, -0.055);
   geo.computeVertexNormals();
-  const plate = shadow(new THREE.Mesh(geo, xtra.titanium));
+  const plate = shadow(new THREE.Mesh(geo, xtra.graphite));
   fin.add(plate);
+  // Titanium edge lip for readable grid-fin contrast
+  const lip = shadow(
+    new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.04), xtra.titanium)
+  );
+  lip.position.z = 0.05;
+  fin.add(lip);
 
   const hinge = shadow(
     new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.55, 16), xtra.graphite)
@@ -218,6 +235,19 @@ function makeGridFin(xtra) {
 
 function makeLeg(mats, xtra) {
   const leg = new THREE.Group();
+  // Black aero sock / fairing over the folded landing leg
+  const sock = shadow(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.28, 7.6, 16), xtra.legSock || mats.black)
+  );
+  sock.position.set(0.95, 0.55, 0);
+  sock.rotation.z = 0.08;
+  leg.add(sock);
+  const sockTip = shadow(
+    new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.1, 14), xtra.legSock || mats.black)
+  );
+  sockTip.position.set(1.35, -3.55, 0);
+  sockTip.rotation.z = 0.08 + Math.PI;
+  leg.add(sockTip);
   const boom = shadow(
     new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 9.4, 14), mats.carbon)
   );
@@ -373,7 +403,7 @@ export function createRocket(mats) {
   first.add(hub);
 
   const octaweb = shadow(
-    new THREE.Mesh(new THREE.CylinderGeometry(R + 0.08, R + 0.18, 1.2, 8), xtra.soot)
+    new THREE.Mesh(new THREE.CylinderGeometry(R + 0.08, R + 0.18, 1.2, 8), mats.metal)
   );
   octaweb.position.y = 3.15;
   octaweb.rotation.y = Math.PI / 8;
@@ -411,10 +441,18 @@ export function createRocket(mats) {
   first.add(octaTop);
 
   const sootBand = shadow(
-    new THREE.Mesh(new THREE.CylinderGeometry(R + 0.03, R + 0.06, 2.2, 48), xtra.soot)
+    new THREE.Mesh(new THREE.CylinderGeometry(R + 0.04, R + 0.09, 4.8, 48), xtra.soot)
   );
-  sootBand.position.y = 4.8;
+  sootBand.position.y = 5.6;
   first.add(sootBand);
+  const sootFade = shadow(
+    new THREE.Mesh(new THREE.CylinderGeometry(R + 0.025, R + 0.04, 2.6, 48), xtra.soot)
+  );
+  sootFade.position.y = 8.6;
+  sootFade.material = xtra.soot.clone();
+  sootFade.material.transparent = true;
+  sootFade.material.opacity = 0.55;
+  first.add(sootFade);
 
   const stripe = shadow(
     new THREE.Mesh(new THREE.CylinderGeometry(R + 0.018, R + 0.018, 0.62, 64), mats.black)
@@ -444,16 +482,18 @@ export function createRocket(mats) {
   const markMat = new THREE.MeshPhysicalMaterial({
     map: makeMarkingTexture(),
     transparent: true,
-    roughness: 0.5,
-    metalness: 0.1,
+    opacity: 1,
+    roughness: 0.42,
+    metalness: 0.08,
     polygonOffset: true,
     polygonOffsetFactor: -2,
+    depthWrite: false,
   });
   const mark = new THREE.Mesh(
-    new THREE.CylinderGeometry(R + 0.022, R + 0.022, 8.5, 24, 1, true, Math.PI * 0.62, 0.42),
+    new THREE.CylinderGeometry(R + 0.028, R + 0.028, 11.5, 32, 1, true, Math.PI * 0.55, 0.55),
     markMat
   );
-  mark.position.y = FIRST_H * 0.52;
+  mark.position.y = FIRST_H * 0.5;
   first.add(mark);
 
   ENGINE_LAYOUT.forEach((p, i) => {

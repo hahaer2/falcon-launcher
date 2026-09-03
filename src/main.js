@@ -78,7 +78,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.06;
+renderer.toneMappingExposure = 1.12;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 function makeDayEnv() {
@@ -106,12 +106,12 @@ scene.fog = dayFog;
 const FRAMING = {
   // Follow cam must keep the FULL ~70m Falcon stack in frame (FOV 36°).
   wide: {
-    pos: new THREE.Vector3(92, 32, 138),
-    target: new THREE.Vector3(0, 36, 0),
+    pos: new THREE.Vector3(78, 28, 118),
+    target: new THREE.Vector3(0, 34, 0),
   },
   hero: {
-    pos: new THREE.Vector3(64, 26, 104),
-    target: new THREE.Vector3(0, 34, 0),
+    pos: new THREE.Vector3(52, 22, 88),
+    target: new THREE.Vector3(0, 32, 0),
   },
 };
 
@@ -127,19 +127,19 @@ controls.minDistance = 40;
 controls.maxDistance = 2500;
 controls.target.copy(FRAMING.wide.target);
 
-const hemi = new THREE.HemisphereLight(0xd4e7ff, 0xb39b78, 1.45);
+const hemi = new THREE.HemisphereLight(0xd4e7ff, 0x8a7a5c, 1.15);
 scene.add(hemi);
 
-const sun = new THREE.DirectionalLight(0xfff3d6, 3.35);
+const sun = new THREE.DirectionalLight(0xfff1c8, 4.1);
 sun.position.set(90, 160, 55);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 8;
-sun.shadow.camera.far = 420;
-sun.shadow.camera.left = -110;
-sun.shadow.camera.right = 110;
-sun.shadow.camera.top = 120;
-sun.shadow.camera.bottom = -60;
+sun.shadow.camera.far = 520;
+sun.shadow.camera.left = -160;
+sun.shadow.camera.right = 160;
+sun.shadow.camera.top = 180;
+sun.shadow.camera.bottom = -80;
 sun.shadow.bias = -0.00018;
 sun.shadow.normalBias = 0.04;
 scene.add(sun);
@@ -426,8 +426,8 @@ function applySkyFade(blend) {
     spaceStars.userData.mat.opacity = THREE.MathUtils.clamp((blend - 0.08) / 0.45, 0, 0.92);
   }
   spaceStars.visible = blend > 0.08;
-  hemi.intensity = THREE.MathUtils.lerp(1.45, 0.22, blend);
-  sun.intensity = THREE.MathUtils.lerp(3.35, 2.8, blend);
+  hemi.intensity = THREE.MathUtils.lerp(1.15, 0.22, blend);
+  sun.intensity = THREE.MathUtils.lerp(4.1, 2.8, blend);
   scene.environmentIntensity = THREE.MathUtils.lerp(1.05, 0.42, blend);
 }
 
@@ -574,6 +574,13 @@ function clearDebris() {
   while (debrisPieces.length) {
     const d = debrisPieces.pop();
     scene.remove(d.mesh);
+    if (d.disposable) {
+      d.mesh.geometry?.dispose?.();
+      if (d.mesh.material) {
+        if (Array.isArray(d.mesh.material)) d.mesh.material.forEach((m) => m.dispose?.());
+        else d.mesh.material.dispose?.();
+      }
+    }
   }
   rocket.visible = true;
 }
@@ -602,6 +609,38 @@ function flingPart(obj, impulseScale) {
       (Math.random() - 0.5) * 7,
     ),
   });
+}
+
+
+function spawnBoomChunks(at) {
+  const mats = [
+    new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.62, metalness: 0.18 }),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.7, metalness: 0.35 }),
+    new THREE.MeshStandardMaterial({ color: 0xc8ccd0, roughness: 0.55, metalness: 0.4 }),
+    new THREE.MeshStandardMaterial({ color: 0xff6a2a, roughness: 0.85, metalness: 0.05, emissive: 0xff4000, emissiveIntensity: 0.8 }),
+  ];
+  for (let i = 0; i < 28; i++) {
+    const kind = i % 4;
+    let geo;
+    if (kind === 0) geo = new THREE.CylinderGeometry(0.35 + Math.random() * 0.9, 0.4 + Math.random(), 2 + Math.random() * 6, 8);
+    else if (kind === 1) geo = new THREE.BoxGeometry(1 + Math.random() * 3, 0.25 + Math.random() * 1.2, 1 + Math.random() * 2.5);
+    else if (kind === 2) geo = new THREE.SphereGeometry(0.4 + Math.random() * 1.1, 8, 6);
+    else geo = new THREE.ConeGeometry(0.5 + Math.random(), 2 + Math.random() * 4, 6);
+    const mesh = new THREE.Mesh(geo, mats[kind]);
+    mesh.castShadow = true;
+    mesh.position.copy(at);
+    mesh.position.x += (Math.random() - 0.5) * 10;
+    mesh.position.y += (Math.random() - 0.5) * 18;
+    mesh.position.z += (Math.random() - 0.5) * 10;
+    scene.add(mesh);
+    const dir = new THREE.Vector3((Math.random() - 0.5) * 2, 0.5 + Math.random(), (Math.random() - 0.5) * 2).normalize();
+    debrisPieces.push({
+      mesh,
+      vel: dir.multiplyScalar(35 + Math.random() * 95),
+      spin: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10),
+      disposable: true,
+    });
+  }
 }
 
 function destroyRocket() {
@@ -655,15 +694,17 @@ function destroyRocket() {
   if (boomFlash) {
     boomFlash.classList.remove('fade');
     boomFlash.classList.add('on');
-    requestAnimationFrame(() => {
+    setTimeout(() => {
+      if (!boomFlash) return;
       boomFlash.classList.remove('on');
       boomFlash.classList.add('fade');
-    });
+    }, 450);
   }
 
   flingPart(rocket.userData.fairing, 1.8);
   flingPart(rocket.userData.second, 1.4);
   flingPart(rocket.userData.first, 1.15);
+  spawnBoomChunks(boomAt);
   rocket.visible = false;
 
   state.vx = 0;
@@ -682,7 +723,7 @@ function destroyRocket() {
   destructOverlayTimer = setTimeout(() => {
     if (state.phase !== 'destroyed') return;
     endGame('destroyed');
-  }, 2600);
+  }, 3200);
 }
 
 function updateDebris(dt) {
@@ -976,14 +1017,16 @@ function updateEffects(dt, time) {
   groundSmoke.update(dt);
 
   let ventK = 0;
-  if (state.phase === 'ignited') ventK = 0.7;
+  if (state.phase === 'idle' && state.fuel > 40) ventK = 0.38;
+  if (state.phase === 'ignited') ventK = 0.78;
   if (state.phase === 'countdown') {
-    ventK = 0.85 + 0.15 * THREE.MathUtils.clamp((state.missionT + COUNTDOWN_SEC) / COUNTDOWN_SEC, 0, 1);
+    ventK = 0.9 + 0.1 * THREE.MathUtils.clamp((state.missionT + COUNTDOWN_SEC) / COUNTDOWN_SEC, 0, 1);
   }
   if (flying && !state.staged) {
     const alt = state.y - PAD_Y;
     ventK = THREE.MathUtils.clamp(1 - alt / 90, 0, 1) * 0.55;
   }
+  if (state.phase === 'destroyed') ventK = 0;
   if (useSpaceLayout()) ventK = 0;
   updateLoxVent(loxVent, rocket, ventK, dt);
   setLoxVaporPlumes(loxMeshes, ventK, time);

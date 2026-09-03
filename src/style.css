@@ -335,4 +335,15 @@ body,
 }
 #overlay.destruct-peek #overlay-card {
   pointer-events: auto;
+  min-width: 220px;
+  padding: 14px 22px;
+  background: rgba(10, 16, 32, 0.78);
+}
+#overlay.destruct-peek #overlay-card h2 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+#overlay.destruct-peek #overlay-card p {
+  margin-bottom: 12px;
+  font-size: 13px;
 }

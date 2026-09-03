@@ -59,12 +59,14 @@ function fbm(x, y) {
 function makePaintRough() {
   const tex = noiseCanvas(256, (x, y) => {
     const n = fbm(x * 0.08, y * 0.045);
-    const specks = hash(x * 0.9, y * 1.1) > 0.97 ? 40 : 0;
-    const v = Math.min(255, 90 + n * 130 + specks);
+    const n2 = fbm(x * 0.22, y * 0.12);
+    const specks = hash(x * 0.9, y * 1.1) > 0.965 ? 55 : 0;
+    // Wider roughness range so paint doesn't read as chalk/clay
+    const v = Math.min(255, Math.max(35, 55 + n * 150 + n2 * 40 + specks));
     return [v, v, v, 255];
   });
   tex.colorSpace = THREE.NoColorSpace;
-  tex.repeat.set(2, 10);
+  tex.repeat.set(2.5, 12);
   return tex;
 }
 
@@ -125,17 +127,17 @@ export function makeMaterials() {
   const sootMap = makeSootMap();
 
   const white = new THREE.MeshPhysicalMaterial({
-    color: 0xf8f6f1,
-    metalness: 0.08,
-    roughness: 0.32,
+    color: 0xeae3d6,
+    metalness: 0.12,
+    roughness: 0.38,
     roughnessMap: paintRough,
     bumpMap: paintRough,
-    bumpScale: 0.03,
-    clearcoat: 0.42,
-    clearcoatRoughness: 0.28,
-    sheen: 0.06,
-    sheenColor: new THREE.Color(0xffffff),
-    envMapIntensity: 0.95,
+    bumpScale: 0.055,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.36,
+    sheen: 0.04,
+    sheenColor: new THREE.Color(0xf2ebe0),
+    envMapIntensity: 1.05,
   });
 
   const black = new THREE.MeshPhysicalMaterial({
@@ -211,11 +213,11 @@ export function makeMaterials() {
   });
 
   const charred = new THREE.MeshPhysicalMaterial({
-    color: 0x1a1410,
+    color: 0x0a0806,
     map: sootMap,
-    roughness: 0.9,
-    metalness: 0.12,
-    envMapIntensity: 0.4,
+    roughness: 0.94,
+    metalness: 0.08,
+    envMapIntensity: 0.28,
   });
 
   const titanium = new THREE.MeshPhysicalMaterial({
@@ -236,17 +238,17 @@ export function makeMaterials() {
   });
 
   const grass = new THREE.MeshStandardMaterial({
-    color: 0x6a8a42,
-    roughness: 0.95,
+    color: 0x556b3c,
+    roughness: 0.96,
     metalness: 0.0,
   });
   const scrub = new THREE.MeshStandardMaterial({
-    color: 0x4e6a32,
-    roughness: 0.97,
+    color: 0x465a34,
+    roughness: 0.98,
     metalness: 0.0,
   });
   const wetland = new THREE.MeshStandardMaterial({
-    color: 0x3a5a44,
+    color: 0x354e40,
     roughness: 0.7,
     metalness: 0.04,
   });

@@ -282,24 +282,34 @@ export function createPad(mats) {
   const wetland = mats.wetland || grass;
   const scrub = mats.scrub || grass;
 
-  const ground = shadow(new THREE.Mesh(new THREE.CircleGeometry(780, 72), grass), false, true);
+  // Muted coastal scrub ground (not neon lawn)
+  const ground = shadow(new THREE.Mesh(new THREE.CircleGeometry(780, 72), scrub), false, true);
   ground.rotation.x = -Math.PI / 2;
   root.add(ground);
+  const grassRing = shadow(new THREE.Mesh(new THREE.RingGeometry(48, 220, 64), grass), false, true);
+  grassRing.rotation.x = -Math.PI / 2;
+  grassRing.position.y = 0.01;
+  root.add(grassRing);
 
-  const ocean = shadow(new THREE.Mesh(new THREE.PlaneGeometry(1100, 1600), water), false, true);
+  // Ocean close enough to read from default follow cam (east of pad)
+  const ocean = shadow(new THREE.Mesh(new THREE.PlaneGeometry(900, 1400), water), false, true);
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(720, 0.02, -40);
+  ocean.position.set(380, -0.15, 40);
   root.add(ocean);
-  const shore = shadow(new THREE.Mesh(new THREE.PlaneGeometry(70, 980), sand), false, true);
+  const oceanNear = shadow(new THREE.Mesh(new THREE.PlaneGeometry(220, 520), water), false, true);
+  oceanNear.rotation.x = -Math.PI / 2;
+  oceanNear.position.set(250, -0.08, 80);
+  root.add(oceanNear);
+  const shore = shadow(new THREE.Mesh(new THREE.PlaneGeometry(55, 720), sand), false, true);
   shore.rotation.x = -Math.PI / 2;
-  shore.position.set(188, 0.06, -20);
+  shore.position.set(155, 0.06, 30);
   root.add(shore);
   const surf = new THREE.Mesh(
-    new THREE.PlaneGeometry(18, 980),
-    new THREE.MeshBasicMaterial({ color: 0xcfe7f6, transparent: true, opacity: 0.45 })
+    new THREE.PlaneGeometry(16, 720),
+    new THREE.MeshBasicMaterial({ color: 0xb9d4e8, transparent: true, opacity: 0.4 })
   );
   surf.rotation.x = -Math.PI / 2;
-  surf.position.set(222, 0.08, -20);
+  surf.position.set(182, 0.08, 30);
   root.add(surf);
 
   const patches = [
@@ -319,7 +329,7 @@ export function createPad(mats) {
     root.add(p);
   });
 
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 36; i++) {
     const a = Math.random() * Math.PI * 2;
     const r = 55 + Math.random() * 200;
     const x = Math.cos(a) * r;
@@ -331,7 +341,7 @@ export function createPad(mats) {
     plant.scale.setScalar(0.7 + Math.random() * 0.7);
     root.add(plant);
   }
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 8; i++) {
     const palm = makePalmetto(scrub, mats.heat);
     palm.position.set(168 + Math.random() * 12, 0, -220 + i * 32 + Math.random() * 8);
     palm.scale.setScalar(1.1 + Math.random() * 0.4);
@@ -377,9 +387,19 @@ export function createPad(mats) {
   deck.rotation.y = Math.PI / 8;
   root.add(deck);
 
-  const trench = shadow(new THREE.Mesh(northTrenchGeo(), mats.charred || mats.heat), false, true);
+  const trenchMat = (mats.charred || mats.heat).clone();
+  trenchMat.color = new THREE.Color(0x050403);
+  trenchMat.roughness = 0.96;
+  const trench = shadow(new THREE.Mesh(northTrenchGeo(), trenchMat), false, true);
   trench.position.set(0, 0.12, 0);
   root.add(trench);
+  const trenchFloor = shadow(
+    new THREE.Mesh(new THREE.BoxGeometry(12, 0.35, 48), trenchMat),
+    false,
+    true
+  );
+  trenchFloor.position.set(0, 0.05, -18);
+  root.add(trenchFloor);
   const trenchFlood = new THREE.Mesh(
     new THREE.BoxGeometry(14, 7, 44),
     new THREE.MeshBasicMaterial({
@@ -405,7 +425,7 @@ export function createPad(mats) {
   const lipR = lipL.clone();
   lipR.position.x = 8.4;
   root.add(lipR);
-  const deflector = box(11, 2.4, 16, mats.heat);
+  const deflector = box(11, 2.4, 16, mats.charred || mats.heat);
   deflector.position.set(0, 1.35, -9);
   deflector.rotation.x = 0.38;
   root.add(deflector);
@@ -481,7 +501,7 @@ export function createPad(mats) {
     const shade = cyl(0.55, 0.22, 0.45, mats.carbon, 12);
     shade.position.set(px, 17.05, pz);
     root.add(shade);
-    const spot = new THREE.SpotLight(0xffe3b8, 18, 90, 0.45, 0.55, 2);
+    const spot = new THREE.SpotLight(0xffe3b8, 4.5, 90, 0.45, 0.55, 2);
     spot.position.set(px, 17.2, pz);
     spot.target.position.set(0, 8, 0);
     spot.castShadow = i < 2;
@@ -569,11 +589,11 @@ export function createPad(mats) {
   lot.rotation.x = -Math.PI / 2;
   lot.position.set(-58, 0.08, 42);
   root.add(lot);
-  const carCols = [0x3a3f48, 0xc8cdd4, 0x6a2a22, 0x1c3a6a, 0xb8a060];
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 6; col++) {
-      const car = box(4.2, 1.35, 1.8, new THREE.MeshStandardMaterial({ color: carCols[(row + col) % 5], roughness: 0.45 }));
-      car.position.set(-70 + col * 5.2, 0.75, 34 + row * 6.2);
+  const carCols = [0x3a3f48, 0x8a9098, 0x4a2a22, 0x2a3a4a, 0x7a7060];
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 4; col++) {
+      const car = box(4.0, 1.25, 1.7, new THREE.MeshStandardMaterial({ color: carCols[(row + col) % 5], roughness: 0.62 }));
+      car.position.set(-68 + col * 5.4, 0.7, 36 + row * 6.5);
       root.add(car);
     }
   }
