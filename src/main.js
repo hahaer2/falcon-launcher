@@ -59,6 +59,7 @@ const camBtns = {
   earth: document.getElementById('btn-cam-earth'),
 };
 const overlay = document.getElementById('overlay');
+const boomFlash = document.getElementById('boom-flash');
 const overlayCard = document.getElementById('overlay-card');
 const btnOverlayReset = document.getElementById('btn-overlay-reset');
 
@@ -242,7 +243,7 @@ const debrisPieces = [];
 const _debrisTmp = new THREE.Vector3();
 const boomFX = new ParticleField(1800, {
   color: 0xff6a2a,
-  size: 9.5,
+  size: 18,
   opacity: 1,
   additive: true,
   spread: 22,
@@ -258,7 +259,7 @@ scene.add(boomFX.points);
 
 const boomSmoke = new ParticleField(1600, {
   color: 0x9aa3ad,
-  size: 14,
+  size: 22,
   opacity: 0.85,
   additive: false,
   spread: 28,
@@ -299,7 +300,7 @@ fireball.add(fireballCore);
 const boomLight = new THREE.PointLight(0xff7a30, 0, 420, 1.4);
 boomLight.visible = false;
 scene.add(boomLight);
-const boomState = { t: 0, active: false, origin: new THREE.Vector3() };
+const boomState = { t: 0, active: false, startedAt: 0, origin: new THREE.Vector3() };
 let destructOverlayTimer = 0;
 
 const SPACE_ALT = 1500;
@@ -613,6 +614,9 @@ function destroyRocket() {
   vacPlume.visible = false;
   plume.visible = false;
 
+  // Never leave a previous end card up while the boom plays
+  overlay.classList.remove('show', 'peek', 'destruct-peek');
+
   rocket.updateMatrixWorld(true);
   const boomAt = new THREE.Vector3();
   rocket.getWorldPosition(boomAt);
@@ -620,34 +624,46 @@ function destroyRocket() {
 
   boomState.active = true;
   boomState.t = 0;
+  boomState.startedAt = performance.now();
   boomState.origin.copy(boomAt);
 
   fireball.position.copy(boomAt);
-  fireball.scale.setScalar(4);
+  fireball.scale.setScalar(28);
   fireballMat.opacity = 1;
   fireballCore.material.opacity = 1;
   fireball.visible = true;
   boomLight.position.copy(boomAt);
-  boomLight.intensity = 1800;
+  boomLight.intensity = 3200;
   boomLight.visible = true;
 
   boomFX.origin.copy(boomAt);
   boomSmoke.origin.copy(boomAt);
   sparks.origin.copy(boomAt);
   smoke.origin.copy(boomAt);
-  boomFX.burst(700);
-  boomSmoke.burst(520);
-  sparks.burst(500);
-  smoke.burst(420);
+  boomFX.burst(900);
+  boomSmoke.burst(700);
+  sparks.burst(650);
+  smoke.burst(520);
   groundSmoke.origin.set(boomAt.x, 0.6, boomAt.z);
-  if (boomAt.y < 120) groundSmoke.burst(180);
-  addShake(42);
-  bloomPass.strength = 1.35;
-  bloomPass.threshold = 0.55;
+  if (boomAt.y < 160) groundSmoke.burst(220);
+  addShake(48);
+  bloomPass.strength = 1.8;
+  bloomPass.threshold = 0.4;
+  bloomPass.radius = 0.55;
 
-  flingPart(rocket.userData.fairing, 1.6);
-  flingPart(rocket.userData.second, 1.25);
-  flingPart(rocket.userData.first, 1.05);
+  // Guaranteed-visible screen flash (DOM, not WebGL)
+  if (boomFlash) {
+    boomFlash.classList.remove('fade');
+    boomFlash.classList.add('on');
+    requestAnimationFrame(() => {
+      boomFlash.classList.remove('on');
+      boomFlash.classList.add('fade');
+    });
+  }
+
+  flingPart(rocket.userData.fairing, 1.8);
+  flingPart(rocket.userData.second, 1.4);
+  flingPart(rocket.userData.first, 1.15);
   rocket.visible = false;
 
   state.vx = 0;
@@ -659,26 +675,31 @@ function destroyRocket() {
   btnIgnite.disabled = true;
   btnLaunch.disabled = true;
   if (btnDestruct) btnDestruct.disabled = true;
-  if (camMode === 'rocket') setCamMode('follow');
-  // Delay end card so the boom is visible first
+  if (camMode === 'rocket' || camMode === 'earth') setCamMode('follow');
+
+  // End card only after the boom has been on screen
   clearTimeout(destructOverlayTimer);
   destructOverlayTimer = setTimeout(() => {
     if (state.phase !== 'destroyed') return;
     endGame('destroyed');
-  }, 1800);
+  }, 2600);
 }
 
 function updateDebris(dt) {
   if (boomState.active) {
-    boomState.t += dt;
-    const u = Math.min(1, boomState.t / 1.6);
-    const grow = 4 + u * 55;
+    // Wall-clock so throttled browsers still see the blast grow
+    const wall = boomState.startedAt
+      ? (performance.now() - boomState.startedAt) / 1000
+      : (boomState.t += dt, boomState.t);
+    boomState.t = wall;
+    const u = Math.min(1, wall / 1.8);
+    const grow = 28 + u * 110;
     fireball.scale.setScalar(grow);
-    fireballMat.opacity = Math.max(0, 1 - u * 1.15);
-    fireballCore.material.opacity = Math.max(0, 1 - u * 1.6);
-    boomLight.intensity = Math.max(0, 1800 * (1 - u) * (1 - u));
-    bloomPass.strength = THREE.MathUtils.lerp(1.35, 0.1, Math.min(1, boomState.t / 1.1));
-    bloomPass.threshold = THREE.MathUtils.lerp(0.55, 0.94, Math.min(1, boomState.t / 1.1));
+    fireballMat.opacity = Math.max(0, 1 - u * 1.05);
+    fireballCore.material.opacity = Math.max(0, 1 - u * 1.45);
+    boomLight.intensity = Math.max(0, 3200 * (1 - u) * (1 - u));
+    bloomPass.strength = THREE.MathUtils.lerp(1.8, 0.1, Math.min(1, wall / 1.4));
+    bloomPass.threshold = THREE.MathUtils.lerp(0.4, 0.94, Math.min(1, wall / 1.4));
     if (u >= 1) {
       boomState.active = false;
       fireball.visible = false;
@@ -721,8 +742,14 @@ function endGame(result) {
     : destroyed
       ? `指令自毁已执行。高度 ${Math.max(0, Math.round(state.y - PAD_Y))} m，碎片四散。`
       : '推力、姿态或燃料不足，飞行器未能维持上升。';
-  overlay.classList.add('show');
-  overlay.classList.toggle('peek', success);
+  if (destroyed) {
+    overlay.classList.remove('peek');
+    overlay.classList.add('destruct-peek', 'show');
+  } else {
+    overlay.classList.remove('destruct-peek');
+    overlay.classList.add('show');
+    overlay.classList.toggle('peek', success);
+  }
   if (success) setCamMode('earth');
   btnIgnite.disabled = true;
   btnLaunch.disabled = true;
@@ -732,10 +759,6 @@ function endGame(result) {
     sparks.origin.set(state.x, Math.max(2, state.y), state.z);
     sparks.burst(220);
     smoke.burst(160);
-  }
-  if (destroyed) {
-    // Keep scene visible under a lighter card so debris stays on screen
-    overlay.classList.add('peek');
   }
 }
 
@@ -810,8 +833,8 @@ function fullReset() {
   angleSlider.disabled = false;
   btnIgnite.disabled = false;
   btnLaunch.disabled = true;
-  overlay.classList.remove('show');
-  overlay.classList.remove('peek');
+  overlay.classList.remove('show', 'peek', 'destruct-peek');
+  if (boomFlash) boomFlash.classList.remove('on', 'fade');
   countdownBig.classList.remove('show');
   shake.intensity = 0;
   teRetract = 0;

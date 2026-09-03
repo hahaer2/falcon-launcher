@@ -303,3 +303,36 @@ body,
 .btn.danger:disabled {
   opacity: 0.45;
 }
+
+#boom-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 230, 160, 0.95) 0%, rgba(255, 120, 40, 0.55) 28%, rgba(255, 40, 0, 0.15) 55%, transparent 72%),
+    rgba(255, 180, 80, 0.25);
+  mix-blend-mode: screen;
+  transition: opacity 0.12s linear;
+}
+#boom-flash.on {
+  opacity: 1;
+  transition: none;
+}
+#boom-flash.fade {
+  opacity: 0;
+  transition: opacity 1.1s ease-out;
+}
+#overlay.destruct-peek {
+  background: transparent;
+  backdrop-filter: none;
+  align-items: flex-start;
+  padding-top: 86px;
+}
+#overlay.destruct-peek.show {
+  pointer-events: none;
+}
+#overlay.destruct-peek #overlay-card {
+  pointer-events: auto;
+}
