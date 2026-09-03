@@ -376,6 +376,9 @@ export class ParticleField {
 
   burst(n) {
     for (let k = 0; k < n; k++) this.spawnOne();
+    this.points.geometry.attributes.position.needsUpdate = true;
+    this.points.geometry.attributes.size.needsUpdate = true;
+    this.points.geometry.attributes.alpha.needsUpdate = true;
   }
 
   spawnOne() {

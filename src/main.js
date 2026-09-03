@@ -237,7 +237,7 @@ const groundSmoke = new ParticleField(2400, {
 });
 scene.add(groundSmoke.points);
 
-const COUNTDOWN_SEC = 10;
+const COUNTDOWN_SEC = 5;
 const shake = { intensity: 0 };
 const debrisPieces = [];
 const _debrisTmp = new THREE.Vector3();
@@ -940,9 +940,11 @@ function updateEffects(dt, time) {
   if (engineOn && pre) intensity = 0.42 + (state.phase === 'countdown' ? 0.38 : 0);
   if (engineOn && flying) intensity = 0.7 + (state.thrustPct / 100) * 0.3;
   setPlumeIntensity(plume, intensity, time);
-  bloomPass.strength = intensity > 0.05 ? 0.1 : 0.045;
-  bloomPass.threshold = intensity > 0.05 ? 0.94 : 0.98;
-  bloomPass.radius = 0.22;
+  if (!boomState.active) {
+    bloomPass.strength = intensity > 0.05 ? 0.12 : 0.05;
+    bloomPass.threshold = intensity > 0.05 ? 0.92 : 0.97;
+    bloomPass.radius = 0.28;
+  }
   setPadSpill(padSpill, state.y < 90 ? intensity : intensity * 0.15, time);
 
   if (state.staged && flying && state.fuel > 0) {
@@ -1038,6 +1040,20 @@ function heroMix() {
 function updateCamera(dt) {
   const kPos = 1 - Math.pow(0.018, dt);
   const kLook = 1 - Math.pow(0.012, dt);
+
+  if (state.phase === 'destroyed') {
+    const focus = boomState.origin.clone();
+    if (debrisPieces.length) {
+      focus.set(0, 0, 0);
+      for (const d of debrisPieces) focus.add(d.mesh.position);
+      focus.multiplyScalar(1 / debrisPieces.length);
+    }
+    const dist = 170;
+    const ideal = focus.clone().add(new THREE.Vector3(dist * 0.55, 48, dist * 0.9));
+    camera.position.lerp(ideal, kPos);
+    controls.target.lerp(focus, kLook);
+    return;
+  }
 
   if (camMode === 'free') return;
 
