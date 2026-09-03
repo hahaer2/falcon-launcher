@@ -91,27 +91,29 @@ const dayFog = new THREE.Fog(0xb7d8ee, 780, 3800);
 scene.fog = dayFog;
 
 const FRAMING = {
+  // Follow cam must keep the FULL ~70m Falcon stack in frame (FOV 36°).
   wide: {
-    pos: new THREE.Vector3(88, 16, 52),
-    target: new THREE.Vector3(0, 14, 0),
+    pos: new THREE.Vector3(78, 28, 118),
+    target: new THREE.Vector3(0, 34, 0),
   },
   hero: {
-    pos: new THREE.Vector3(32, 5.8, 28),
-    target: new THREE.Vector3(0, 3.6, 0),
+    // Still a full-stack 3/4 — never crop to engines only.
+    pos: new THREE.Vector3(52, 22, 86),
+    target: new THREE.Vector3(0, 32, 0),
   },
 };
 
 const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.2, 40000);
-camera.position.copy(FRAMING.hero.pos);
+camera.position.copy(FRAMING.wide.pos);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.055;
 controls.minPolarAngle = 0.12;
 controls.maxPolarAngle = Math.PI * 0.86;
-controls.minDistance = 14;
-controls.maxDistance = 900;
-controls.target.copy(FRAMING.hero.target);
+controls.minDistance = 40;
+controls.maxDistance = 2500;
+controls.target.copy(FRAMING.wide.target);
 
 const hemi = new THREE.HemisphereLight(0xd4e7ff, 0xb39b78, 1.45);
 scene.add(hemi);
@@ -699,8 +701,11 @@ function updateCamera(dt) {
     return;
   }
 
+  // Follow: always frame the full vehicle (base + fairing tip), never crop to a stub.
   const alt = Math.max(0, state.y - PAD_Y);
-  const mix = heroMix();
+  const stackH = rocket.userData.totalHeight || 70;
+  const midY = state.y + stackH * 0.48;
+  const mix = heroMix() * 0.55; // keep distance — never slam into ultra-tight crop
   const widePos = FRAMING.wide.pos;
   const heroPos = FRAMING.hero.pos;
   const wideLook = FRAMING.wide.target;
@@ -708,21 +713,22 @@ function updateCamera(dt) {
 
   let desired;
   let look;
-  if (state.phase !== 'flying' || alt < 18) {
+  if (state.phase !== 'flying' || alt < 12) {
     desired = new THREE.Vector3().lerpVectors(widePos, heroPos, mix);
     look = new THREE.Vector3().lerpVectors(wideLook, heroLook, mix);
+    // Aim at mid-stack so tip and engines both fit.
+    look.y = THREE.MathUtils.lerp(look.y, midY, 0.85);
+    desired.y = THREE.MathUtils.lerp(desired.y, midY - 6, 0.35);
     desired.x += state.x;
-    desired.z += state.z * 0.2;
+    desired.z += state.z * 0.15;
     look.x += state.x;
     look.z += state.z;
   } else {
-    const climb = THREE.MathUtils.smoothstep(18, 380, alt);
-    const high = THREE.MathUtils.smoothstep(0, 2200, alt);
-    const dist = THREE.MathUtils.lerp(78, 240, high);
-    const camY = THREE.MathUtils.lerp(heroPos.y + alt * 0.15, state.y + 26, climb);
-    const lookY = THREE.MathUtils.lerp(heroLook.y + alt * 0.2, state.y + 8, climb);
-    desired = new THREE.Vector3(state.x + dist * 0.56, camY, state.z + dist);
-    look = new THREE.Vector3(state.x, lookY, state.z);
+    const high = THREE.MathUtils.smoothstep(0, 1800, alt);
+    const dist = THREE.MathUtils.lerp(110, 280, high);
+    const camY = state.y + THREE.MathUtils.lerp(stackH * 0.35, 40, high);
+    desired = new THREE.Vector3(state.x + dist * 0.62, camY, state.z + dist);
+    look = new THREE.Vector3(state.x, midY, state.z);
   }
   camera.position.lerp(desired, kPos);
   controls.target.lerp(look, kLook);
