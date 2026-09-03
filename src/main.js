@@ -1017,7 +1017,10 @@ function updateEffects(dt, time) {
   groundSmoke.update(dt);
 
   let ventK = 0;
-  if (state.phase === 'idle' && state.fuel > 40) ventK = 0.38;
+  if (state.phase === 'idle' && state.fuel > 40) {
+    // Standby LOX boil-off: gentle wisps above ~40% fuel, stronger near full
+    ventK = 0.24 + ((state.fuel - 40) / 60) * 0.32;
+  }
   if (state.phase === 'ignited') ventK = 0.78;
   if (state.phase === 'countdown') {
     ventK = 0.9 + 0.1 * THREE.MathUtils.clamp((state.missionT + COUNTDOWN_SEC) / COUNTDOWN_SEC, 0, 1);

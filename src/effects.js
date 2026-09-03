@@ -513,8 +513,8 @@ const VENT_LOCAL = [
 
 export function createLoxVent() {
   const field = new ParticleField(1600, {
-    color: 0x9aa8b6,
-    size: 8.5,
+    color: 0xd0dae6,
+    size: 10.5,
     additive: false,
     spread: 0.85,
     down: 5.5,
@@ -522,7 +522,7 @@ export function createLoxVent() {
     lifeSpan: [1.1, 2.8],
     gravity: 4.0,
     yJitter: 1.4,
-    alphaMul: 0.95,
+    alphaMul: 1.05,
     emitCap: 90,
     grow: 1.8,
   });
@@ -545,7 +545,7 @@ export function createLoxVaporPlumes() {
     const m = new THREE.Mesh(
       geo,
       new THREE.MeshBasicMaterial({
-        color: 0x8e9eae,
+        color: 0xc5d0dc,
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -560,7 +560,7 @@ export function createLoxVaporPlumes() {
   const wrap = new THREE.Mesh(
     new THREE.CylinderGeometry(3.6, 5.8, 15, 22, 1, true),
     new THREE.MeshBasicMaterial({
-      color: 0x96a6b4,
+      color: 0xd0dae4,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -578,10 +578,11 @@ export function createLoxVaporPlumes() {
 
 export function setLoxVaporPlumes(root, k, time) {
   const t = THREE.MathUtils.clamp(k, 0, 1);
-  root.visible = t > 0.02;
+  root.visible = t > 0.015;
   root.children.forEach((m, i) => {
     const flicker = 0.78 + 0.22 * Math.sin(time * 11 + i * 1.7);
-    m.material.opacity = t * 0.58 * flicker;
+    // Higher opacity so idle wisps read clearly in daylight
+    m.material.opacity = t * 0.72 * flicker;
     m.scale.set(1.05 + t * 1.15, 0.85 + t * 1.45 * flicker, 1.05 + t * 1.15);
   });
 }
