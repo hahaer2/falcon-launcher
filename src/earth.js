@@ -185,20 +185,21 @@ export function createSpaceStars() {
     pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
   }
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  group.add(
-    new THREE.Points(
-      geo,
-      new THREE.PointsMaterial({
-        color: 0xe8f0ff,
-        size: 3.2,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-      })
-    )
+  const pts = new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({
+      color: 0xe8f0ff,
+      size: 3.2,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      fog: false,
+    })
   );
-  group.visible = false;
+  group.add(pts);
+  group.userData.mat = pts.material;
+  group.visible = true;
   return group;
 }
 

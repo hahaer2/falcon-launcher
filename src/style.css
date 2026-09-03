@@ -289,3 +289,17 @@ body,
   color: #9db0c8;
   margin-bottom: 22px;
 }
+
+.btn.danger {
+  background: linear-gradient(180deg, #ff5a4a, #c62828);
+  border: 1px solid #ff8a80;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 14px rgba(255, 60, 40, 0.35);
+}
+.btn.danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn.danger:disabled {
+  opacity: 0.45;
+}

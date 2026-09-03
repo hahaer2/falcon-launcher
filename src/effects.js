@@ -366,6 +366,12 @@ export class ParticleField {
     this.lifeSpan = opts.lifeSpan ?? [0.6, 1.8];
     this.ground = opts.ground ?? false;
     this.cursor = 0;
+    this.grow = opts.grow ?? 0;
+    this.gravity = opts.gravity ?? (opts.ground ? 0 : 4.5);
+    this.drift = opts.drift ? opts.drift.clone() : new THREE.Vector3();
+    this.yJitter = opts.yJitter ?? 0.5;
+    this.alphaMul = opts.alphaMul ?? 1;
+    this.emitCap = opts.emitCap ?? (opts.ground ? 80 : 48);
   }
 
   burst(n) {
@@ -390,18 +396,18 @@ export class ParticleField {
       this.vel[i * 3 + 2] = Math.sin(a) * out;
     } else {
       this.positions[i * 3] = this.origin.x + Math.cos(a) * rad;
-      this.positions[i * 3 + 1] = this.origin.y + (Math.random() - 0.5) * 0.5;
+      this.positions[i * 3 + 1] = this.origin.y + (Math.random() - 0.5) * this.yJitter;
       this.positions[i * 3 + 2] = this.origin.z + Math.sin(a) * rad;
-      this.vel[i * 3] = Math.cos(a) * this.side * (0.25 + Math.random());
-      this.vel[i * 3 + 1] = -this.down * (0.45 + Math.random() * 0.7);
-      this.vel[i * 3 + 2] = Math.sin(a) * this.side * (0.25 + Math.random());
+      this.vel[i * 3] = Math.cos(a) * this.side * (0.25 + Math.random()) + this.drift.x;
+      this.vel[i * 3 + 1] = -this.down * (0.45 + Math.random() * 0.7) + this.drift.y;
+      this.vel[i * 3 + 2] = Math.sin(a) * this.side * (0.25 + Math.random()) + this.drift.z;
     }
     this.sizes[i] = this.baseSize * (0.65 + Math.random() * 0.9);
     this.alphas[i] = 1.0;
   }
 
   update(dt) {
-    const n = Math.min(this.ground ? 80 : 48, Math.floor(this.emitRate * dt * 60));
+    const n = Math.min(this.emitCap, Math.floor(this.emitRate * dt * 60));
     for (let k = 0; k < n; k++) this.spawnOne();
 
     for (let i = 0; i < this.count; i++) {
@@ -413,7 +419,7 @@ export class ParticleField {
         continue;
       }
       const age = 1 - this.life[i] / this.maxLife[i];
-      this.alphas[i] = this.ground ? (1 - age) * (0.45 + 0.4 * (1 - age)) : 1 - age;
+      this.alphas[i] = (this.ground ? (1 - age) * (0.45 + 0.4 * (1 - age)) : 1 - age) * this.alphaMul;
       if (this.ground) {
         this.vel[i * 3 + 1] += 1.8 * dt;
         this.sizes[i] += dt * 1.6;
@@ -422,7 +428,8 @@ export class ParticleField {
           this.vel[i * 3 + 1] = Math.abs(this.vel[i * 3 + 1]) * 0.15;
         }
       } else {
-        this.vel[i * 3 + 1] += 4.5 * dt;
+        this.vel[i * 3 + 1] += this.gravity * dt;
+        if (this.grow) this.sizes[i] += dt * this.grow;
       }
       this.vel[i * 3] *= 1 - 0.12 * dt;
       this.vel[i * 3 + 2] *= 1 - 0.12 * dt;
@@ -489,4 +496,205 @@ export function pulseVacPlume(plume, t, time) {
   const flicker = 0.9 + Math.sin(time * 28) * 0.08;
   plume.scale.set(1, 0.78 + k * flicker * 0.35, 1);
   pulseLayers(plume.userData.layers, k * flicker, time);
+}
+
+const VENT_LOCAL = [
+  new THREE.Vector3(1.95, 33.5, 0.35),
+  new THREE.Vector3(-1.7, 36.2, 0.9),
+  new THREE.Vector3(0.2, 40.4, -1.85),
+  new THREE.Vector3(1.4, 28.5, -1.5),
+  new THREE.Vector3(-0.8, 31.0, 1.7),
+  new THREE.Vector3(1.6, 24.0, 1.2),
+  new THREE.Vector3(-1.5, 38.5, -0.6),
+];
+
+export function createLoxVent() {
+  const field = new ParticleField(1600, {
+    color: 0x9aa8b6,
+    size: 8.5,
+    additive: false,
+    spread: 0.85,
+    down: 5.5,
+    side: 2.1,
+    lifeSpan: [1.1, 2.8],
+    gravity: 4.0,
+    yJitter: 1.4,
+    alphaMul: 0.95,
+    emitCap: 90,
+    grow: 1.8,
+  });
+  field.points.material.depthWrite = false;
+  return field;
+}
+
+export function createLoxVaporPlumes() {
+  const root = new THREE.Group();
+  root.name = 'loxVaporMeshes';
+  const pts = [];
+  for (let i = 0; i <= 18; i++) {
+    const t = i / 18;
+    const r = 0.35 + Math.pow(t, 0.6) * 4.2 * (1 - t * 0.28);
+    pts.push(new THREE.Vector2(r, -t * 16));
+  }
+  const geo = new THREE.LatheGeometry(pts, 16);
+  geo.computeVertexNormals();
+  VENT_LOCAL.forEach((p, i) => {
+    const m = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({
+        color: 0x8e9eae,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: true,
+      })
+    );
+    m.position.copy(p);
+    m.rotation.y = i * 0.9;
+    root.add(m);
+  });
+  const wrap = new THREE.Mesh(
+    new THREE.CylinderGeometry(3.6, 5.8, 15, 22, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: 0x96a6b4,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      fog: true,
+    })
+  );
+  wrap.position.y = 32.5;
+  wrap.name = 'loxWrap';
+  root.add(wrap);
+  root.userData.meshes = root.children;
+  root.visible = false;
+  return root;
+}
+
+export function setLoxVaporPlumes(root, k, time) {
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  root.visible = t > 0.02;
+  root.children.forEach((m, i) => {
+    const flicker = 0.78 + 0.22 * Math.sin(time * 11 + i * 1.7);
+    m.material.opacity = t * 0.58 * flicker;
+    m.scale.set(1.05 + t * 1.15, 0.85 + t * 1.45 * flicker, 1.05 + t * 1.15);
+  });
+}
+
+export function updateLoxVent(field, rocket, k, dt) {
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  field.emitRate = 0;
+  if (t < 0.02) {
+    field.update(dt);
+    return;
+  }
+  rocket.updateMatrixWorld(true);
+  const n = Math.max(2, Math.floor(t * 10));
+  for (let i = 0; i < n; i++) {
+    const lp = VENT_LOCAL[i % VENT_LOCAL.length];
+    field.origin.copy(lp).applyMatrix4(rocket.matrixWorld);
+    field.burst(Math.ceil(2 + t * 5));
+  }
+  field.update(dt);
+}
+
+export function createDeluge() {
+  return new ParticleField(2200, {
+    color: 0xc5e8f6,
+    size: 1.35,
+    additive: true,
+    spread: 0.4,
+    down: 13,
+    side: 1.6,
+    lifeSpan: [0.35, 0.95],
+    gravity: 11,
+    yJitter: 0.25,
+    alphaMul: 1,
+    emitCap: 120,
+  });
+}
+
+export function updateDeluge(field, rainbirds, k, dt) {
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  field.emitRate = 0;
+  rainbirds.forEach((rb) => {
+    const spray = rb.userData.spray;
+    if (spray) {
+      spray.material.opacity = t * (0.7 + 0.18 * Math.sin(performance.now() * 0.022 + rb.position.x));
+      spray.scale.set(1.25 + t * 1.1, 1.05 + t * 1.55, 1.25 + t * 1.1);
+    }
+    if (t > 0.03) {
+      rb.updateMatrixWorld(true);
+      field.origin.set(0, 1.72, 0).applyMatrix4(rb.matrixWorld);
+      const aim = rb.userData.aim || new THREE.Vector3(0, -0.4, -1);
+      field.drift.copy(aim).multiplyScalar(18 + t * 14);
+      field.burst(Math.ceil(3 + t * 8));
+    }
+  });
+  field.update(dt);
+}
+
+export function createContrail() {
+  return new ParticleField(2800, {
+    color: 0xa8b6c4,
+    size: 14,
+    additive: false,
+    spread: 2.2,
+    down: 0.04,
+    side: 0.9,
+    lifeSpan: [3.5, 8.0],
+    gravity: 0.04,
+    grow: 5.5,
+    yJitter: 2.0,
+    alphaMul: 0.78,
+    emitCap: 70,
+  });
+}
+
+export function createContrailColumn() {
+  const pts = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24;
+    pts.push(new THREE.Vector2(1.6 + Math.pow(t, 0.72) * 9.5, -t * 140));
+  }
+  const mesh = new THREE.Mesh(
+    new THREE.LatheGeometry(pts, 18),
+    new THREE.MeshBasicMaterial({
+      color: 0xaab6c2,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      fog: true,
+    })
+  );
+  mesh.name = 'contrailColumn';
+  mesh.position.y = -3.1;
+  mesh.visible = false;
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+export function setContrailColumn(mesh, k) {
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  mesh.visible = t > 0.03;
+  mesh.material.opacity = t * 0.4;
+  mesh.scale.set(0.85 + t * 1.35, 0.55 + t * 1.7, 0.85 + t * 1.35);
+}
+
+export function setTrenchFlood(mesh, k) {
+  if (!mesh) return;
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  mesh.material.opacity = t * 0.42;
+  mesh.scale.set(1 + t * 0.35, 0.6 + t * 1.4, 1 + t * 0.2);
+  mesh.visible = t > 0.04;
+}
+
+export function updateContrail(field, origin, k, dt) {
+  const t = THREE.MathUtils.clamp(k, 0, 1);
+  field.origin.copy(origin);
+  field.emitRate = t * 36;
+  field.update(dt);
 }

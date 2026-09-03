@@ -24,8 +24,11 @@ function between(a, b, radius, mat, segs = 8) {
 }
 
 function makeStrongback(mats) {
-  const g = new THREE.Group();
-  g.name = 'strongback';
+  const root = new THREE.Group();
+  root.name = 'strongback';
+  const tower = new THREE.Group();
+  tower.name = 'teTower';
+  tower.rotation.y = Math.PI;
   const h = 72;
   const w = 5.2;
   const d = 4.4;
@@ -38,55 +41,59 @@ function makeStrongback(mats) {
   posts.forEach((p) => {
     const col = cyl(0.22, 0.26, h, mats.rustSteel, 12);
     col.position.set(p.x, h / 2, p.z);
-    g.add(col);
+    tower.add(col);
   });
 
   const levels = 12;
   for (let i = 0; i <= levels; i++) {
     const y = (i / levels) * h;
     const corners = posts.map((p) => new THREE.Vector3(p.x, y, p.z));
-    g.add(between(corners[0], corners[1], 0.08, mats.rustSteel));
-    g.add(between(corners[1], corners[3], 0.08, mats.rustSteel));
-    g.add(between(corners[3], corners[2], 0.08, mats.rustSteel));
-    g.add(between(corners[2], corners[0], 0.08, mats.rustSteel));
+    tower.add(between(corners[0], corners[1], 0.08, mats.rustSteel));
+    tower.add(between(corners[1], corners[3], 0.08, mats.rustSteel));
+    tower.add(between(corners[3], corners[2], 0.08, mats.rustSteel));
+    tower.add(between(corners[2], corners[0], 0.08, mats.rustSteel));
     if (i < levels) {
       const y2 = ((i + 1) / levels) * h;
-      g.add(between(new THREE.Vector3(-w / 2, y, -d / 2), new THREE.Vector3(-w / 2, y2, d / 2), 0.055, mats.metal));
-      g.add(between(new THREE.Vector3(w / 2, y, d / 2), new THREE.Vector3(w / 2, y2, -d / 2), 0.055, mats.metal));
+      tower.add(between(new THREE.Vector3(-w / 2, y, -d / 2), new THREE.Vector3(-w / 2, y2, d / 2), 0.055, mats.metal));
+      tower.add(between(new THREE.Vector3(w / 2, y, d / 2), new THREE.Vector3(w / 2, y2, -d / 2), 0.055, mats.metal));
     }
     const deck = shadow(new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 0.12, 16), mats.carbon));
     deck.position.y = y;
-    if (i % 2 === 0) g.add(deck);
+    if (i % 2 === 0) tower.add(deck);
   }
 
+  const arms = new THREE.Group();
+  arms.name = 'teArms';
   const armHeights = [18, 32, 48, 62];
   armHeights.forEach((y, idx) => {
     const arm = cyl(0.28, 0.28, 6.8, mats.rustSteel, 12);
     arm.rotation.z = Math.PI / 2;
-    arm.position.set(3.2, y, 0);
-    g.add(arm);
+    arm.position.set(-3.2, y, 0);
+    arms.add(arm);
     const cuff = cyl(0.42, 0.42, 0.55, mats.metal, 16);
     cuff.rotation.z = Math.PI / 2;
-    cuff.position.set(0.55, y, 0);
-    g.add(cuff);
+    cuff.position.set(-0.55, y, 0);
+    arms.add(cuff);
     if (idx === 2) {
       const hood = shadow(
         new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), mats.carbon)
       );
-      hood.rotation.z = -Math.PI / 2;
-      hood.position.set(1.4, y + 0.2, 0);
-      g.add(hood);
+      hood.rotation.z = Math.PI / 2;
+      hood.position.set(-1.4, y + 0.2, 0);
+      arms.add(hood);
     }
   });
-
   const crew = cyl(0.55, 0.55, 8.4, mats.white, 20);
   crew.rotation.z = Math.PI / 2;
-  crew.position.set(3.4, 54, 0);
-  g.add(crew);
+  crew.position.set(-3.4, 54, 0);
+  arms.add(crew);
   const cabin = shadow(new THREE.Mesh(new THREE.SphereGeometry(1.05, 18, 14), mats.white));
-  cabin.position.set(0.2, 54, 0);
-  g.add(cabin);
-  return g;
+  cabin.position.set(-0.2, 54, 0);
+  arms.add(cabin);
+  tower.add(arms);
+  root.add(tower);
+  root.userData.arms = arms;
+  return root;
 }
 
 function makeFenceTexture() {
@@ -156,6 +163,7 @@ function northTrenchGeo() {
 
 function makeRainbird(mats) {
   const g = new THREE.Group();
+  g.name = 'rainbird';
   const post = cyl(0.07, 0.1, 1.55, mats.metal, 8);
   post.position.y = 0.78;
   g.add(post);
@@ -169,6 +177,24 @@ function makeRainbird(mats) {
   nozzle.rotation.z = 0.7;
   nozzle.position.set(0.22, 1.55, 0);
   g.add(nozzle);
+  const spray = new THREE.Mesh(
+    new THREE.ConeGeometry(0.95, 22, 12, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: 0xbfe6f6,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      fog: true,
+    })
+  );
+  spray.geometry.translate(0, -11, 0);
+  spray.position.y = 1.7;
+  spray.name = 'delugeSpray';
+  g.add(spray);
+  g.userData.spray = spray;
   return g;
 }
 
@@ -354,6 +380,22 @@ export function createPad(mats) {
   const trench = shadow(new THREE.Mesh(northTrenchGeo(), mats.charred || mats.heat), false, true);
   trench.position.set(0, 0.12, 0);
   root.add(trench);
+  const trenchFlood = new THREE.Mesh(
+    new THREE.BoxGeometry(14, 7, 44),
+    new THREE.MeshBasicMaterial({
+      color: 0xa8d8ec,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+    })
+  );
+  trenchFlood.position.set(0, 3.4, -20);
+  trenchFlood.name = 'trenchFlood';
+  trenchFlood.visible = false;
+  root.add(trenchFlood);
+  root.userData.trenchFlood = trenchFlood;
   const southCap = box(16, 3.2, 4.2, mats.concrete);
   southCap.position.set(0, 1.5, 10.4);
   root.add(southCap);
@@ -395,9 +437,10 @@ export function createPad(mats) {
 
   const strongback = makeStrongback(mats);
   strongback.position.set(-8.4, 2.3, 2);
-  strongback.rotation.y = Math.PI;
   root.add(strongback);
+  root.userData.strongback = strongback;
 
+  const rainbirds = [];
   const rainSpots = [
     [10.5, -4],
     [-10.5, -4],
@@ -412,11 +455,18 @@ export function createPad(mats) {
     [0, 14],
     [16, -10],
   ];
+  const trenchAim = new THREE.Vector3(0, 0.45, -26);
   rainSpots.forEach(([x, z]) => {
     const rb = makeRainbird(mats);
     rb.position.set(x, 2.15, z);
     root.add(rb);
+    const from = new THREE.Vector3(x, 3.85, z);
+    const dir = trenchAim.clone().sub(from).normalize();
+    rb.userData.spray.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+    rb.userData.aim = dir;
+    rainbirds.push(rb);
   });
+  root.userData.rainbirds = rainbirds;
 
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 + 0.2;
@@ -550,6 +600,7 @@ export function createSky() {
       top: { value: new THREE.Color(0x2f86d6) },
       mid: { value: new THREE.Color(0x7ec8f2) },
       bot: { value: new THREE.Color(0xeaf4ff) },
+      uFade: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vPos;
@@ -563,10 +614,12 @@ export function createSky() {
       uniform vec3 top;
       uniform vec3 mid;
       uniform vec3 bot;
+      uniform float uFade;
       void main() {
         float h = normalize(vPos).y;
         vec3 col = mix(bot, mid, smoothstep(-0.12, 0.22, h));
         col = mix(col, top, smoothstep(0.18, 0.88, h));
+        col = mix(col, vec3(0.02, 0.035, 0.055), uFade);
         gl_FragColor = vec4(col, 1.0);
       }
     `,
@@ -581,6 +634,8 @@ export function createSky() {
       fog: false,
       toneMapped: false,
       depthWrite: false,
+      transparent: true,
+      opacity: 1,
     })
   );
   sun.position.set(520, 1180, 340);
@@ -601,6 +656,6 @@ export function createSky() {
   halo.position.copy(sun.position).multiplyScalar(0.98);
   halo.lookAt(0, 0, 0);
   group.add(halo);
-
+  group.userData = { skyMat, sun, halo };
   return group;
 }

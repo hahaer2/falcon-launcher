@@ -17,6 +17,17 @@ import {
   setPlumeIntensity,
   setPadSpill,
   pulseVacPlume,
+  createLoxVent,
+  updateLoxVent,
+  createLoxVaporPlumes,
+  setLoxVaporPlumes,
+  createDeluge,
+  updateDeluge,
+  createContrail,
+  updateContrail,
+  createContrailColumn,
+  setContrailColumn,
+  setTrenchFlood,
 } from './effects.js';
 
 const canvas = document.getElementById('c');
@@ -40,6 +51,7 @@ const countdownBig = document.getElementById('countdown-big');
 const btnIgnite = document.getElementById('btn-ignite');
 const btnLaunch = document.getElementById('btn-launch');
 const btnReset = document.getElementById('btn-reset');
+const btnDestruct = document.getElementById('btn-destruct');
 const camBtns = {
   free: document.getElementById('btn-cam-free'),
   follow: document.getElementById('btn-cam-follow'),
@@ -93,13 +105,12 @@ scene.fog = dayFog;
 const FRAMING = {
   // Follow cam must keep the FULL ~70m Falcon stack in frame (FOV 36°).
   wide: {
-    pos: new THREE.Vector3(78, 28, 118),
-    target: new THREE.Vector3(0, 34, 0),
+    pos: new THREE.Vector3(92, 32, 138),
+    target: new THREE.Vector3(0, 36, 0),
   },
   hero: {
-    // Still a full-stack 3/4 — never crop to engines only.
-    pos: new THREE.Vector3(52, 22, 86),
-    target: new THREE.Vector3(0, 32, 0),
+    pos: new THREE.Vector3(64, 26, 104),
+    target: new THREE.Vector3(0, 34, 0),
   },
 };
 
@@ -154,12 +165,29 @@ scene.add(rocket);
 const plume = createPlume();
 rocket.userData.first.add(plume);
 
+const loxMeshes = createLoxVaporPlumes();
+rocket.userData.first.add(loxMeshes);
+const contrailColumn = createContrailColumn();
+rocket.userData.first.add(contrailColumn);
+
 const vacPlume = createVacPlume();
 vacPlume.position.y = -0.6;
 rocket.userData.second.add(vacPlume);
 
 const padSpill = createPadSpill();
 scene.add(padSpill);
+
+const loxVent = createLoxVent();
+scene.add(loxVent.points);
+const deluge = createDeluge();
+scene.add(deluge.points);
+const contrail = createContrail();
+scene.add(contrail.points);
+
+const DAY_BG = new THREE.Color(0x7eb7ea);
+const SPACE_BG = new THREE.Color(0x050910);
+const DAY_FOG = new THREE.Color(0xb7d8ee);
+let teRetract = 0;
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -210,6 +238,23 @@ scene.add(groundSmoke.points);
 
 const COUNTDOWN_SEC = 10;
 const shake = { intensity: 0 };
+const debrisPieces = [];
+const _debrisTmp = new THREE.Vector3();
+const boomFX = new ParticleField(900, {
+  color: 0xff6a2a,
+  size: 1.4,
+  opacity: 1,
+  additive: true,
+  spread: 8,
+  down: -28,
+  side: 42,
+  lifeSpan: [0.5, 1.8],
+  yJitter: 14,
+  gravity: 9,
+  emitCap: 120,
+});
+scene.add(boomFX.points);
+
 const SPACE_ALT = 1500;
 let camMode = 'follow';
 const _up = new THREE.Vector3();
@@ -253,8 +298,8 @@ function setCamMode(mode) {
       controls.target.copy(FRAMING.wide.target);
     }
     controls.enabled = true;
-    controls.minDistance = high ? 90 : 14;
-    controls.maxDistance = high ? EARTH_R * 7 : 2000;
+    controls.minDistance = high ? 90 : 40;
+    controls.maxDistance = high ? EARTH_R * 7 : 2500;
     controls.minPolarAngle = 0.08;
     controls.maxPolarAngle = Math.PI * 0.9;
     camera.near = 0.2;
@@ -303,21 +348,65 @@ function setStatus(text) {
   hud.status.textContent = text;
 }
 
+function spaceBlend() {
+  if (camMode === 'earth') return 1;
+  if (state.phase !== 'flying' && state.phase !== 'success') return 0;
+  return THREE.MathUtils.smoothstep(140, 1780, state.y - PAD_Y);
+}
+
+function useSpaceLayout() {
+  if (camMode === 'earth') return true;
+  return spaceBlend() > 0.92;
+}
+
+function applySkyFade(blend) {
+  scene.background.copy(DAY_BG).lerp(SPACE_BG, blend);
+  if (blend < 0.9) {
+    scene.fog = dayFog;
+    dayFog.color.copy(DAY_FOG).lerp(SPACE_BG, blend * 0.9);
+    dayFog.near = THREE.MathUtils.lerp(780, 180, blend);
+    dayFog.far = THREE.MathUtils.lerp(3800, 1200, blend);
+  } else {
+    scene.fog = null;
+  }
+  const sky = daySky.userData;
+  if (sky.skyMat) sky.skyMat.uniforms.uFade.value = blend;
+  if (sky.sun) sky.sun.material.opacity = 1 - blend;
+  if (sky.halo) sky.halo.material.opacity = 0.22 * (1 - blend);
+  daySky.visible = blend < 0.98;
+  if (spaceStars.userData.mat) {
+    spaceStars.userData.mat.opacity = THREE.MathUtils.clamp((blend - 0.08) / 0.45, 0, 0.92);
+  }
+  spaceStars.visible = blend > 0.08;
+  hemi.intensity = THREE.MathUtils.lerp(1.45, 0.22, blend);
+  sun.intensity = THREE.MathUtils.lerp(3.35, 2.8, blend);
+  scene.environmentIntensity = THREE.MathUtils.lerp(1.05, 0.42, blend);
+}
+
+function setTeRetract(t) {
+  const te = pad.userData.strongback || pad.getObjectByName('strongback');
+  if (!te) return;
+  if (te.userData.homeX === undefined) te.userData.homeX = te.position.x;
+  const k = THREE.MathUtils.clamp(t, 0, 1);
+  te.position.x = te.userData.homeX - k * 9;
+  te.rotation.z = k * 1.08;
+  const arms = te.userData.arms || te.getObjectByName('teArms');
+  if (arms) arms.rotation.z = -k * 1.2;
+}
+
 function syncRocketTransform() {
+  const blend = spaceBlend();
   const space = useSpaceLayout();
+  applySkyFade(blend);
   pad.visible = !space;
-  daySky.visible = !space;
   earth.visible = space;
-  spaceStars.visible = space;
   padSpill.visible = !space;
   groundSmoke.points.visible = !space;
+  loxVent.points.visible = !space;
+  deluge.points.visible = !space;
+  contrail.points.visible = !space || blend < 0.96;
 
   if (space) {
-    scene.background.setHex(0x050910);
-    scene.fog = null;
-    scene.environmentIntensity = 0.42;
-    hemi.intensity = 0.22;
-    sun.intensity = 2.8;
     const alt = Math.max(0, state.y - PAD_Y);
     const R = EARTH_R + 70 + alt * 0.05;
     const lat = 0.48;
@@ -338,27 +427,15 @@ function syncRocketTransform() {
       }
     }
   } else {
-    scene.background.setHex(0x7eb7ea);
-    scene.fog = dayFog;
-    scene.environmentIntensity = 1.05;
-    hemi.intensity = 1.45;
-    sun.intensity = 3.35;
     rocket.position.set(state.x, state.y, state.z);
     rocket.quaternion.identity();
     rocket.rotation.set(0, 0, THREE.MathUtils.degToRad(-state.yaw));
   }
 
   if (camMode === 'follow' || camMode === 'free') {
-    const space = useSpaceLayout();
-    controls.minDistance = space ? 90 : 14;
-    controls.maxDistance = space ? EARTH_R * 7 : 2000;
+    controls.minDistance = space ? 90 : 40;
+    controls.maxDistance = space ? EARTH_R * 7 : 2500;
   }
-}
-
-function useSpaceLayout() {
-  if (camMode === 'earth') return true;
-  const alt = state.y - PAD_Y;
-  return (state.phase === 'flying' || state.phase === 'success') && alt >= SPACE_ALT;
 }
 
 function worldEnginePos() {
@@ -444,30 +521,125 @@ function separate() {
   sparks.burst(50);
 }
 
+
+function clearDebris() {
+  while (debrisPieces.length) {
+    const d = debrisPieces.pop();
+    scene.remove(d.mesh);
+  }
+  rocket.visible = true;
+}
+
+function flingPart(obj, impulseScale) {
+  if (!obj) return;
+  obj.updateMatrixWorld(true);
+  const worldPos = new THREE.Vector3();
+  const worldQuat = new THREE.Quaternion();
+  obj.getWorldPosition(worldPos);
+  obj.getWorldQuaternion(worldQuat);
+  scene.attach(obj);
+  obj.position.copy(worldPos);
+  obj.quaternion.copy(worldQuat);
+  const dir = new THREE.Vector3(
+    (Math.random() - 0.5) * 2,
+    0.35 + Math.random() * 1.2,
+    (Math.random() - 0.5) * 2,
+  ).normalize();
+  debrisPieces.push({
+    mesh: obj,
+    vel: dir.multiplyScalar(28 + Math.random() * 55 * impulseScale),
+    spin: new THREE.Vector3(
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4,
+    ),
+  });
+}
+
+function destroyRocket() {
+  if (state.phase === 'destroyed' || state.phase === 'success' || state.phase === 'crash') return;
+  // Stop engines / vapors
+  clearInterval(state.countdownTimer);
+  countdownBig.classList.remove('show');
+  setPlumeIntensity(plume, 0, 0);
+  setPadSpill(padSpill, 0, 0);
+  if (typeof setLoxVaporPlumes === 'function') setLoxVaporPlumes(loxMeshes, 0, 0);
+  vacPlume.visible = false;
+  plume.visible = false;
+
+  const boomAt = new THREE.Vector3(state.x, Math.max(PAD_Y + 4, state.y + 18), state.z);
+  boomFX.origin.copy(boomAt);
+  boomFX.burst(420);
+  sparks.origin.copy(boomAt);
+  sparks.burst(380);
+  smoke.origin.copy(boomAt);
+  smoke.burst(280);
+  addShake(32);
+
+  // Blow the stack apart
+  rocket.updateMatrixWorld(true);
+  flingPart(rocket.userData.fairing, 1.3);
+  flingPart(rocket.userData.second, 1.0);
+  flingPart(rocket.userData.first, 0.85);
+  rocket.visible = false;
+
+  state.vx = 0;
+  state.vy = 0;
+  state.vz = 0;
+  endGame('destroyed');
+}
+
+function updateDebris(dt) {
+  for (let i = debrisPieces.length - 1; i >= 0; i--) {
+    const d = debrisPieces[i];
+    d.vel.y -= 18 * dt;
+    d.mesh.position.x += d.vel.x * dt;
+    d.mesh.position.y += d.vel.y * dt;
+    d.mesh.position.z += d.vel.z * dt;
+    d.mesh.rotation.x += d.spin.x * dt;
+    d.mesh.rotation.y += d.spin.y * dt;
+    d.mesh.rotation.z += d.spin.z * dt;
+    if (d.mesh.position.y < -80) {
+      scene.remove(d.mesh);
+      debrisPieces.splice(i, 1);
+    }
+  }
+  boomFX.update(dt);
+}
+
 function endGame(result) {
   state.phase = result;
   state.clockRunning = false;
   const success = result === 'success';
-  setStatus(success ? '入轨成功' : '任务失败');
+  const destroyed = result === 'destroyed';
+  setStatus(success ? '入轨成功' : destroyed ? '空中解体' : '任务失败');
   overlayCard.className = success ? 'success' : 'crash';
-  overlayCard.querySelector('h2').textContent = success ? '进入预定轨道' : '火箭坠毁';
+  overlayCard.querySelector('h2').textContent = success
+    ? '进入预定轨道'
+    : destroyed
+      ? '空中解体'
+      : '火箭坠毁';
   overlayCard.querySelector('p').textContent = success
     ? `最大高度 ${Math.round(state.y)} m，二级点火正常，任务完成。`
-    : '推力、姿态或燃料不足，飞行器未能维持上升。';
+    : destroyed
+      ? `指令自毁已执行。高度 ${Math.max(0, Math.round(state.y - PAD_Y))} m，碎片四散。`
+      : '推力、姿态或燃料不足，飞行器未能维持上升。';
   overlay.classList.add('show');
   overlay.classList.toggle('peek', success);
   if (success) setCamMode('earth');
   btnIgnite.disabled = true;
   btnLaunch.disabled = true;
+  if (btnDestruct) btnDestruct.disabled = true;
   if (!success) {
-    addShake(16);
+    addShake(destroyed ? 28 : 16);
     sparks.origin.set(state.x, Math.max(2, state.y), state.z);
-    sparks.burst(220);
-    smoke.burst(160);
+    sparks.burst(destroyed ? 360 : 220);
+    smoke.burst(destroyed ? 260 : 160);
   }
 }
 
 function fullReset() {
+  clearDebris();
   clearInterval(state.countdownTimer);
   if (state.firstDetached) {
     const first = scene.getObjectByName('firstStage');
@@ -482,6 +654,26 @@ function fullReset() {
   vacPlume.visible = false;
   rocket.userData.second.position.y = rocket.userData.secondHomeY;
   rocket.userData.fairing.position.y = rocket.userData.fairingHomeY;
+
+
+  // Reattach stages after self-destruct scatter
+  if (rocket.userData.first && rocket.userData.first.parent !== rocket) {
+    rocket.add(rocket.userData.first);
+    rocket.userData.first.position.set(0, 0, 0);
+    rocket.userData.first.rotation.set(0, 0, 0);
+  }
+  if (rocket.userData.second && rocket.userData.second.parent !== rocket) {
+    rocket.add(rocket.userData.second);
+    rocket.userData.second.position.set(0, rocket.userData.secondHomeY, 0);
+    rocket.userData.second.rotation.set(0, 0, 0);
+  }
+  if (rocket.userData.fairing && rocket.userData.fairing.parent !== rocket) {
+    rocket.add(rocket.userData.fairing);
+    rocket.userData.fairing.position.set(0, rocket.userData.fairingHomeY, 0);
+    rocket.userData.fairing.rotation.set(0, 0, 0);
+  }
+  rocket.visible = true;
+  if (btnDestruct) btnDestruct.disabled = false;
 
   Object.assign(state, {
     phase: 'idle',
@@ -513,8 +705,16 @@ function fullReset() {
   overlay.classList.remove('peek');
   countdownBig.classList.remove('show');
   shake.intensity = 0;
+  teRetract = 0;
+  setTeRetract(0);
   setPlumeIntensity(plume, 0, 0);
   setPadSpill(padSpill, 0, 0);
+  setLoxVaporPlumes(loxMeshes, 0, 0);
+  updateLoxVent(loxVent, rocket, 0, 0.016);
+  updateDeluge(deluge, pad.userData.rainbirds || [], 0, 0.016);
+  setContrailColumn(contrailColumn, 0);
+  setTrenchFlood(pad.userData.trenchFlood, 0);
+  updateContrail(contrail, worldEnginePos(), 0, 0.016);
   syncRocketTransform();
   setStatus('待命中');
   hud.stage.textContent = '一级';
@@ -641,6 +841,47 @@ function updateEffects(dt, time) {
   smoke.update(dt);
   groundSmoke.update(dt);
 
+  let ventK = 0;
+  if (state.phase === 'ignited') ventK = 0.7;
+  if (state.phase === 'countdown') {
+    ventK = 0.85 + 0.15 * THREE.MathUtils.clamp((state.missionT + COUNTDOWN_SEC) / COUNTDOWN_SEC, 0, 1);
+  }
+  if (flying && !state.staged) {
+    const alt = state.y - PAD_Y;
+    ventK = THREE.MathUtils.clamp(1 - alt / 90, 0, 1) * 0.55;
+  }
+  if (useSpaceLayout()) ventK = 0;
+  updateLoxVent(loxVent, rocket, ventK, dt);
+  setLoxVaporPlumes(loxMeshes, ventK, time);
+
+  let delugeK = 0;
+  if (state.phase === 'countdown' && state.missionT > -1.6) {
+    delugeK = THREE.MathUtils.clamp((state.missionT + 1.6) / 1.6, 0, 1);
+  }
+  if (flying) {
+    const alt = state.y - PAD_Y;
+    delugeK = THREE.MathUtils.clamp(1 - alt / 95, 0, 1);
+  }
+  if (useSpaceLayout()) delugeK = 0;
+  const birds = pad.userData.rainbirds || [];
+  updateDeluge(deluge, birds, delugeK, dt);
+
+  let trailK = 0;
+  if (flying && !useSpaceLayout()) {
+    const alt = state.y - PAD_Y;
+    trailK =
+      THREE.MathUtils.smoothstep(28, 120, alt) *
+      (1 - THREE.MathUtils.smoothstep(1000, 1700, alt));
+    if (state.staged) trailK *= 0.55;
+  }
+  updateContrail(contrail, origin, trailK, dt);
+  setContrailColumn(contrailColumn, trailK);
+  setTrenchFlood(pad.userData.trenchFlood, delugeK);
+
+  const teWant = flying || state.phase === 'success' ? 1 : 0;
+  teRetract = THREE.MathUtils.damp(teRetract, teWant, 4.4, dt);
+  setTeRetract(teRetract);
+
   if (camMode !== 'earth' && shake.intensity > 0.08) {
     const mag = shake.intensity * (camMode === 'rocket' ? 0.01 : 0.018);
     camera.position.x += (Math.random() - 0.5) * mag;
@@ -694,8 +935,8 @@ function updateCamera(dt) {
     _east.crossVectors(new THREE.Vector3(0, 1, 0), _up);
     if (_east.lengthSq() < 1e-6) _east.set(1, 0, 0);
     _east.normalize();
-    const desired = rocket.position.clone().addScaledVector(_up, 55).addScaledVector(_east, 110);
-    const look = rocket.position.clone().addScaledVector(_up, 8);
+    const desired = rocket.position.clone().addScaledVector(_up, 80).addScaledVector(_east, 165);
+    const look = rocket.position.clone().addScaledVector(_up, 18);
     camera.position.lerp(desired, kPos);
     controls.target.lerp(look, kLook);
     return;
@@ -705,7 +946,7 @@ function updateCamera(dt) {
   const alt = Math.max(0, state.y - PAD_Y);
   const stackH = rocket.userData.totalHeight || 70;
   const midY = state.y + stackH * 0.48;
-  const mix = heroMix() * 0.55; // keep distance — never slam into ultra-tight crop
+  const mix = heroMix() * 0.4;
   const widePos = FRAMING.wide.pos;
   const heroPos = FRAMING.hero.pos;
   const wideLook = FRAMING.wide.target;
@@ -725,8 +966,8 @@ function updateCamera(dt) {
     look.z += state.z;
   } else {
     const high = THREE.MathUtils.smoothstep(0, 1800, alt);
-    const dist = THREE.MathUtils.lerp(110, 280, high);
-    const camY = state.y + THREE.MathUtils.lerp(stackH * 0.35, 40, high);
+    const dist = THREE.MathUtils.lerp(130, 310, high);
+    const camY = state.y + THREE.MathUtils.lerp(stackH * 0.42, 48, high);
     desired = new THREE.Vector3(state.x + dist * 0.62, camY, state.z + dist);
     look = new THREE.Vector3(state.x, midY, state.z);
   }
@@ -816,6 +1057,7 @@ angleSlider.addEventListener('input', () => {
 btnIgnite.addEventListener('click', startIgnite);
 btnLaunch.addEventListener('click', startCountdown);
 btnReset.addEventListener('click', fullReset);
+btnDestruct.addEventListener('click', destroyRocket);
 btnOverlayReset.addEventListener('click', fullReset);
 Object.entries(camBtns).forEach(([mode, btn]) => {
   btn.addEventListener('click', () => setCamMode(mode));
